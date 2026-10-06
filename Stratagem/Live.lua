@@ -1235,3 +1235,124 @@ function Live.Apply(built, identity, char, log)
     end
     SurfaceBosses(steps, char, log)
 end
+
+-- One class trainer per class. Coordinates are Wowhead's TBC Classic city
+-- guides (/way points), not inns. A missing row still names the capital.
+local CLASS_TRAINERS = {
+    Horde = {
+        WARRIOR = { npc = "Sorek", zone = "Orgrimmar", where = "Hall of the Brave, Valley of Honor", mapID = 1454, x = 0.804, y = 0.324, source = "wowhead-tbc-orgrimmar-class-trainers" },
+        HUNTER = { npc = "Ormak Grimshot", zone = "Orgrimmar", where = "Hunter's Hall, Valley of Honor", mapID = 1454, x = 0.660, y = 0.185, source = "wowhead-tbc-orgrimmar-class-trainers" },
+        MAGE = { npc = "Deino", zone = "Orgrimmar", where = "Darkbriar Lodge, Valley of Spirits", mapID = 1454, x = 0.385, y = 0.860, source = "wowhead-tbc-orgrimmar-class-trainers" },
+        PRIEST = { npc = "Ur'kyo", zone = "Orgrimmar", where = "Spirit Lodge, Valley of Spirits", mapID = 1454, x = 0.356, y = 0.877, source = "wowhead-tbc-orgrimmar-class-trainers" },
+        ROGUE = { npc = "Ormok", zone = "Orgrimmar", where = "Cleft of Shadow", mapID = 1454, x = 0.440, y = 0.546, source = "wowhead-tbc-orgrimmar-class-trainers" },
+        SHAMAN = { npc = "Kardris Dreamseeker", zone = "Orgrimmar", where = "Valley of Wisdom", mapID = 1454, x = 0.389, y = 0.364, source = "wowhead-tbc-orgrimmar-class-trainers" },
+        WARLOCK = { npc = "Grol'dar", zone = "Orgrimmar", where = "Darkfire Enclave, Cleft of Shadow", mapID = 1454, x = 0.480, y = 0.460, source = "wowhead-tbc-orgrimmar-class-trainers" },
+        DRUID = { npc = "Turak Runetotem", zone = "Thunder Bluff", where = "Elder Rise, Hall of Elders", mapID = 1456, x = 0.765, y = 0.272, source = "wowhead-tbc-thunder-bluff-class-trainers" },
+    },
+    Alliance = {
+        DRUID = { npc = "Sheldras Moontree", zone = "Stormwind City", where = "the Park, south of the moonwell", mapID = 1453, x = 0.209, y = 0.555, source = "wowhead-tbc-stormwind-class-trainers" },
+        PRIEST = { npc = "High Priestess Laurena", zone = "Stormwind City", where = "the Cathedral of Light, behind the altar", mapID = 1453, x = 0.386, y = 0.262, source = "wowhead-tbc-stormwind-class-trainers" },
+        ROGUE = { npc = "Osborne the Night Man", zone = "Stormwind City", where = "SI:7, Old Town", mapID = 1453, x = 0.746, y = 0.528, source = "wowhead-tbc-stormwind-class-trainers" },
+    },
+}
+
+function Live.SpellRankDue(level, xp, xpMax, trained)
+    if type(level) ~= "number" or level < 1 or level >= 60 then
+        return nil
+    end
+    trained = trained or 0
+    if level % 2 == 0 and trained < level then
+        return level
+    end
+    local nxt = level + 1
+    if nxt <= 60 and nxt % 2 == 0 and trained < nxt then
+        if type(xpMax) == "number" and xpMax > 0 and type(xp) == "number" and (xp / xpMax) >= 0.90 then
+            return nxt
+        end
+    end
+    return nil
+end
+
+local function ClassTrainStep(identity, trainAt)
+    local faction = identity and identity.faction or "Horde"
+    local classFile = identity and identity.classFile
+    local book = CLASS_TRAINERS[faction]
+    local row = book and classFile and book[classFile]
+    local city = (faction == "Horde") and "Orgrimmar" or "Stormwind City"
+    local title = "Train level " .. trainAt .. " spells"
+    local npc = row and row.npc
+    local zone = (row and row.zone) or city
+    local text
+    if row then
+        text = "New spell ranks come at every even level. " .. row.npc
+            .. " is in " .. row.where .. ", " .. row.zone
+            .. ", about " .. string.format("%.1f, %.1f", row.x * 100, row.y * 100) .. "."
+    else
+        text = "New spell ranks come at every even level. Your class trainer is in " .. city .. "."
+    end
+    local step = {
+        id = "dyn-classtrain-" .. trainAt,
+        kind = "classtrain",
+        trainAt = trainAt,
+        title = title,
+        npc = npc,
+        text = text,
+        zone = zone,
+        goalHeader = "Train",
+        goals = { { name = npc and (title .. " from " .. npc) or title, have = 0, need = 1 } },
+        minutes = 8,
+        confidence = row and "reported" or "log",
+        source = (row and row.source) or "wowhead-classic-even-spell-ranks",
+    }
+    if row and row.mapID and row.x and row.y then
+        step.mapID = row.mapID
+        step.x = row.x
+        step.y = row.y
+        step.pin = "approx"
+    end
+    return step
+end
+
+function Live.SpliceSpellTrain(built, identity, char, log)
+    if not built or not built.steps or not char or char.demo or built.key == "demo" then
+        return
+    end
+    local level = UnitLevel and UnitLevel("player") or 1
+    local xp = UnitXP and UnitXP("player") or 0
+    local xpMax = UnitXPMax and UnitXPMax("player") or 1
+    local trainAt = Live.SpellRankDue(level, xp, xpMax, char.trainedLevel)
+    if not trainAt then
+        return
+    end
+    local id = "dyn-classtrain-" .. trainAt
+    if char.skips and char.skips[id] then
+        return
+    end
+    local steps = built.steps
+    for i = #steps, 1, -1 do
+        if steps[i].id == id then
+            table.remove(steps, i)
+        end
+    end
+    local spot
+    for i = 1, #steps do
+        if steps[i].pocket then
+            spot = i
+            break
+        end
+    end
+    if not spot then
+        local skips = char.skips or {}
+        for i = 1, #steps do
+            local step = steps[i]
+            if not step.levelDefer and not skips[step.id] and not (QS.Resume and QS.Resume.Done(step, log)) then
+                spot = i
+                break
+            end
+        end
+    end
+    if not spot then
+        spot = #steps
+    end
+    table.insert(steps, spot + 1, ClassTrainStep(identity, trainAt))
+end

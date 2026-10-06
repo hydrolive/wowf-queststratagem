@@ -452,6 +452,17 @@ function Api.RememberTitle(questID, title, zone)
     end
 end
 
+local titleMiss = {}
+local titleQueue = {}
+local titleQueued = {}
+local titleAt = 1
+
+function Api.ForgetTitleMiss(questID)
+    if questID then
+        titleMiss[questID] = nil
+    end
+end
+
 function Api.TitleFor(questID)
     if type(questID) ~= "number" or questID <= 0 then
         return nil
@@ -459,10 +470,16 @@ function Api.TitleFor(questID)
     local char = QS.char
     local cached = char and char.questTitles and char.questTitles[questID]
     if cached == false then
-        return nil
+        cached = nil
+        if char and char.questTitles then
+            char.questTitles[questID] = nil
+        end
     end
     if type(cached) == "string" and cached ~= "" then
         return cached
+    end
+    if titleMiss[questID] then
+        return nil
     end
     local title
     if C_QuestLog and C_QuestLog.GetTitleForQuestID then
@@ -484,13 +501,46 @@ function Api.TitleFor(questID)
     end
     if title then
         Api.RememberTitle(questID, title, nil)
-    elseif char then
-        if type(char.questTitles) ~= "table" then
-            char.questTitles = {}
-        end
-        char.questTitles[questID] = false
+        titleMiss[questID] = nil
+    else
+        titleMiss[questID] = true
     end
     return title
+end
+
+function Api.QueueTitles(completed)
+    if type(completed) ~= "table" then
+        return
+    end
+    local char = QS.char
+    local known = char and char.questTitles
+    for id, v in pairs(completed) do
+        if v and type(id) == "number" and not titleQueued[id] then
+            local have = known and known[id]
+            if type(have) ~= "string" or have == "" then
+                titleQueued[id] = true
+                titleQueue[#titleQueue + 1] = id
+            end
+        end
+    end
+end
+
+function Api.PumpTitles()
+    local found = false
+    local n = 0
+    while titleAt <= #titleQueue and n < 20 do
+        local id = titleQueue[titleAt]
+        titleAt = titleAt + 1
+        n = n + 1
+        titleMiss[id] = nil
+        if C_QuestLog and C_QuestLog.RequestLoadQuestByID then
+            pcall(C_QuestLog.RequestLoadQuestByID, id)
+        end
+        if Api.TitleFor(id) then
+            found = true
+        end
+    end
+    return found
 end
 
 function Api.ReadCompleted(turnedIn)

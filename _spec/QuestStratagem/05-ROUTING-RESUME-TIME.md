@@ -14,7 +14,8 @@
 8. Run cluster batching.
 9. Hand the list to Resume. Pull forward, then `Level.Apply` (skipped for the demo route).
 10. After the level plan, `Live.Apply` may copy steps to attach `extraGoals` and insert the town, talent, profession, and bag block.
-11. `Area.Apply` then puts the quest-log area at the front and drops profession train steps for that rebuild. Demo mode skips Live and Area. Detail is in MEMORY.md, "Live guide", "Level plan", and "Area focus". Choose the index after that.
+11. `Area.Apply` then puts the quest-log area at the front and drops profession train steps for that rebuild. Demo mode skips Live and Area. Detail is in MEMORY.md, "Live guide", "Level plan", and "Area focus".
+12. `Live.SpliceSpellTrain` then inserts the class trainer after the first camp when a new spell rank is due. The camp stays the current step until it is finished. Choose the index after that.
 
 ## Precursor injection
 

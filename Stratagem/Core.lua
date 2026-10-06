@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.13"
+QS.VERSION = "0.1.14"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -128,6 +128,14 @@ function QS:InitDB()
     if type(QuestStratagemCharDB.questTitles) ~= "table" then
         QuestStratagemCharDB.questTitles = {}
     end
+    for id, title in pairs(QuestStratagemCharDB.questTitles) do
+        if title == false or title == "" then
+            QuestStratagemCharDB.questTitles[id] = nil
+        end
+    end
+    if type(QuestStratagemCharDB.trainedLevel) ~= "number" then
+        QuestStratagemCharDB.trainedLevel = nil
+    end
     if type(QuestStratagemCharDB.questZones) ~= "table" then
         QuestStratagemCharDB.questZones = {}
     end
@@ -181,6 +189,9 @@ function QS:Rebuild()
     end
     if QS.Area and QS.Area.Apply then
         QS.Area.Apply(built, QS.char, log)
+    end
+    if QS.Live and QS.Live.SpliceSpellTrain then
+        QS.Live.SpliceSpellTrain(built, id, QS.char, log)
     end
     QS.Resume.SeedHistory(QS.char, log)
     local prevStep = QS.route and QS.route.index and QS.route.steps[QS.route.index]
@@ -381,6 +392,9 @@ local function DiffTurnIns(now)
         for questID, info in pairs(prev) do
             if info.complete and not now[questID] then
                 QS.char.turnedIn[questID] = time()
+                if QS.Api and QS.Api.RememberTitle then
+                    QS.Api.RememberTitle(questID, info.title, info.zone)
+                end
             end
         end
     end
@@ -424,6 +438,10 @@ function QS:OnEvent(event, arg1, arg2)
         local questID = arg1
         if type(questID) == "number" and questID > 0 then
             QS.char.turnedIn[questID] = time()
+            local prev = QS.prevInLog and QS.prevInLog[questID]
+            if prev and QS.Api and QS.Api.RememberTitle then
+                QS.Api.RememberTitle(questID, prev.title, prev.zone)
+            end
         end
         QS:RequestRebuild()
         return
@@ -455,6 +473,42 @@ function QS:OnEvent(event, arg1, arg2)
     if event == "CHARACTER_POINTS_CHANGED" or event == "PLAYER_TALENT_UPDATE" then
         QS.Config.GuessSpec(false)
         QS:RequestRebuild()
+        return
+    end
+    if event == "TRAINER_SHOW" then
+        local service
+        if type(GetTrainerServiceType) == "function" then
+            local ok, v = pcall(GetTrainerServiceType)
+            if ok and type(v) == "string" then
+                service = string.lower(v)
+            end
+        end
+        local trades = false
+        if type(IsTradeskillTrainer) == "function" then
+            local ok, v = pcall(IsTradeskillTrainer)
+            trades = ok and v and true or false
+        end
+        local classTrainer = (service == "class") or (service == nil and type(IsTradeskillTrainer) == "function" and not trades)
+        if classTrainer and QS.char then
+            local level = UnitLevel("player") or 1
+            if level % 2 == 1 then
+                level = level - 1
+            end
+            if level >= 2 and (QS.char.trainedLevel or 0) < level then
+                QS.char.trainedLevel = level
+            end
+        end
+        QS:RequestRebuild()
+        return
+    end
+    if event == "QUEST_DATA_LOAD_RESULT" then
+        local questID = arg1
+        if type(questID) == "number" and QS.Api and QS.Api.ForgetTitleMiss then
+            QS.Api.ForgetTitleMiss(questID)
+            if QS.Api.TitleFor(questID) then
+                QS:RequestRebuild()
+            end
+        end
         return
     end
     if event == "BAG_UPDATE" or event == "SKILL_LINES_CHANGED" or event == "UPDATE_INVENTORY_DURABILITY" or event == "MERCHANT_CLOSED" or event == "BANKFRAME_CLOSED" or event == "AUCTION_HOUSE_CLOSED" or event == "TRAINER_CLOSED" or event == "GOSSIP_CLOSED" then
@@ -563,6 +617,16 @@ frame:SetScript("OnUpdate", function(self, elapsed)
         QS.UI:OnTick()
     end
     self.liveAcc = (self.liveAcc or 0) + dt
+    self.titleAcc = (self.titleAcc or 0) + dt
+    if self.titleAcc >= 2 and QS.Api and QS.Api.PumpTitles and QS.route and QS.route.log then
+        self.titleAcc = 0
+        if QS.Api.QueueTitles then
+            QS.Api.QueueTitles(QS.route.log.completed)
+        end
+        if QS.Api.PumpTitles() then
+            QS:RequestRebuild()
+        end
+    end
     if self.liveAcc >= 2 and QS.route and QS.route.index and QS.char then
         self.liveAcc = 0
         local step = QS.route.steps[QS.route.index]
@@ -596,7 +660,9 @@ SafeRegister(frame, "UPDATE_INVENTORY_DURABILITY")
 SafeRegister(frame, "MERCHANT_CLOSED")
 SafeRegister(frame, "BANKFRAME_CLOSED")
 SafeRegister(frame, "AUCTION_HOUSE_CLOSED")
+SafeRegister(frame, "TRAINER_SHOW")
 SafeRegister(frame, "TRAINER_CLOSED")
+SafeRegister(frame, "QUEST_DATA_LOAD_RESULT")
 SafeRegister(frame, "GOSSIP_CLOSED")
 SafeRegister(frame, "CHAT_MSG_COMBAT_HOSTILE_DEATH")
 SafeRegister(frame, "TAXIMAP_OPENED")

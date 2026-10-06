@@ -206,6 +206,10 @@ function Resume.Done(step, log)
         end
         return false
     end
+    if kind == "classtrain" then
+        local trained = QS.char and QS.char.trainedLevel or 0
+        return trained >= (step.trainAt or 1)
+    end
     if kind == "accept" then
         if step.questIDs then
             return AllLoggedOrDone(log, step.questIDs)
@@ -1121,6 +1125,15 @@ function Resume.PathRows(route)
         local prev = seen[key]
         if prev then
             prev.state = PreferState(prev.state, row.state)
+            if (row.band or 0) > (prev.band or 0) then
+                prev.band = row.band
+            end
+            if (row.when or 0) > (prev.when or 0) then
+                prev.when = row.when
+            end
+            if (row.seq or 0) > (prev.seq or 0) then
+                prev.seq = row.seq
+            end
             if row.state == "now" then
                 prev.id = row.id or prev.id
                 prev.title = row.title or prev.title
@@ -1153,22 +1166,43 @@ function Resume.PathRows(route)
         end
     end
     table.sort(ids)
+    if QS.Api and QS.Api.QueueTitles then
+        QS.Api.QueueTitles(completed)
+    end
+    if QS.Api and QS.Api.PumpTitles then
+        QS.Api.PumpTitles()
+    end
     local zones = (QS.char and QS.char.questZones) or {}
+    local turnedIn = (QS.char and QS.char.turnedIn) or {}
+    local seenTitles = (QS.char and QS.char.questSeen) or {}
     for i = 1, #ids do
         local id = ids[i]
         local title = QS.Api and QS.Api.TitleFor and QS.Api.TitleFor(id)
         if title then
+            local when = 0
+            local stamp = turnedIn[id]
+            if type(stamp) == "number" and stamp > 1 then
+                when = stamp
+            end
+            local band = 0
+            local low = string.lower(title)
+            if when > 0 or seenTitles[low] then
+                band = 1
+            end
             add({
                 key = keyFor(title, id),
                 id = "done-" .. tostring(id),
                 title = title,
                 zone = zones[id],
                 state = "done",
+                band = band,
+                when = when,
+                seq = id,
             })
         end
     end
 
-    local function consider(step, state)
+    local function consider(step, state, meta)
         if not step then
             return
         end
@@ -1176,12 +1210,16 @@ function Resume.PathRows(route)
         if type(title) ~= "string" or title == "" then
             title = step.title or Resume.Caption(step)
         end
+        meta = meta or {}
         add({
             key = keyFor(title, step.questID),
             id = step.id,
             title = title,
             zone = step.placeName or step.zone,
             state = state,
+            band = meta.band or 0,
+            when = meta.when or 0,
+            seq = meta.seq or 0,
         })
     end
 
@@ -1189,7 +1227,7 @@ function Resume.PathRows(route)
         for i = 1, #hist do
             local row = hist[i]
             if row and row.id and Resume.Done(row, log) then
-                consider(row, "done")
+                consider(row, "done", { band = 1, when = 0, seq = 10000000 + i })
             end
         end
     end
@@ -1212,7 +1250,17 @@ function Resume.PathRows(route)
             elseif index and i < index then
                 state = "skip"
             end
-            consider(step, state)
+            local grey = step.starter or (QS.Level and QS.Level.IsGrey and QS.Level.IsGrey(step))
+            local stamp = step.questID and turnedIn[step.questID]
+            local when = 0
+            if not grey and type(stamp) == "number" and stamp > 1 then
+                when = stamp
+            end
+            local band = 0
+            if when > 0 or (state == "done" and not grey) then
+                band = 1
+            end
+            consider(step, state, { band = band, when = when, seq = i })
         end
     end
 
@@ -1233,11 +1281,11 @@ function Resume.PathRows(route)
     end
 
     local ordered = {}
-    local skips, now, ahead = {}, nil, {}
+    local doneRows, skips, now, ahead = {}, {}, nil, {}
     for i = 1, #rows do
         local row = rows[i]
         if row.state == "done" then
-            ordered[#ordered + 1] = row
+            doneRows[#doneRows + 1] = row
         elseif row.state == "skip" then
             skips[#skips + 1] = row
         elseif row.state == "now" then
@@ -1245,6 +1293,24 @@ function Resume.PathRows(route)
         else
             ahead[#ahead + 1] = row
         end
+    end
+    table.sort(doneRows, function(a, b)
+        local ab, bb = a.band or 0, b.band or 0
+        if ab ~= bb then
+            return ab < bb
+        end
+        local aw, bw = a.when or 0, b.when or 0
+        if aw ~= bw then
+            return aw < bw
+        end
+        local asq, bsq = a.seq or 0, b.seq or 0
+        if asq ~= bsq then
+            return asq < bsq
+        end
+        return (a.title or "") < (b.title or "")
+    end)
+    for i = 1, #doneRows do
+        ordered[#ordered + 1] = doneRows[i]
     end
     for i = 1, #skips do
         ordered[#ordered + 1] = skips[i]
@@ -1334,7 +1400,7 @@ function Resume.Status(step, log, measure)
     if step.kind == "craft" then
         return "Craft"
     end
-    if step.kind == "proftrain" then
+    if step.kind == "proftrain" or step.kind == "classtrain" then
         return "Train"
     end
     if step.kind == "bank" then

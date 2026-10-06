@@ -1,4 +1,12 @@
 -- Stratagem changelog
+-- 0.1.14 (2026-10-06)
+-- The rows against the current step are quests turned in while Stratagem
+-- was running, then the steps it stored. Starter quests stay at the top.
+-- A finished quest keeps its name. A name the client has not returned is
+-- counted and not shown as a number. When the next even level is close,
+-- the next activity after the current camp is the class trainer. The camp
+-- keeps the arrow until it is finished. A Horde priest goes to Ur'kyo in
+-- Orgrimmar, Spirit Lodge, about 35.6, 87.7.
 -- 0.1.13 (2026-10-06)
 -- Path lists each quest once, then the camps still ahead, and the bar
 -- is a percent. The end of level 27 reads about 50%. Finished quests
