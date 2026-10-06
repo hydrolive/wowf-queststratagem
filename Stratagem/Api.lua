@@ -391,6 +391,7 @@ function Api.ReadLog()
                 zone = zoneName,
                 objectives = ReadObjectives(questID, i),
             }
+            Api.RememberTitle(questID, title, zoneName)
             if current then
                 current.quests[#current.quests + 1] = questID
             end
@@ -422,6 +423,74 @@ function Api.QueryCompleted()
     if QueryQuestsCompleted then
         pcall(QueryQuestsCompleted)
     end
+end
+
+function Api.RememberTitle(questID, title, zone)
+    if type(questID) ~= "number" or questID <= 0 then
+        return
+    end
+    if type(title) ~= "string" or title == "" then
+        return
+    end
+    local char = QS.char
+    if not char then
+        return
+    end
+    if type(char.questTitles) ~= "table" then
+        char.questTitles = {}
+    end
+    if not char.questTitles[questID] then
+        char.questTitles[questID] = title
+    end
+    if type(zone) == "string" and zone ~= "" then
+        if type(char.questZones) ~= "table" then
+            char.questZones = {}
+        end
+        if not char.questZones[questID] then
+            char.questZones[questID] = zone
+        end
+    end
+end
+
+function Api.TitleFor(questID)
+    if type(questID) ~= "number" or questID <= 0 then
+        return nil
+    end
+    local char = QS.char
+    local cached = char and char.questTitles and char.questTitles[questID]
+    if cached == false then
+        return nil
+    end
+    if type(cached) == "string" and cached ~= "" then
+        return cached
+    end
+    local title
+    if C_QuestLog and C_QuestLog.GetTitleForQuestID then
+        local ok, a = pcall(C_QuestLog.GetTitleForQuestID, questID)
+        if ok and type(a) == "string" and a ~= "" then
+            title = a
+        end
+    end
+    if not title and C_QuestLog and C_QuestLog.GetQuestInfo then
+        local ok, info = pcall(C_QuestLog.GetQuestInfo, questID)
+        if ok and type(info) == "string" and info ~= "" then
+            title = info
+        elseif ok and type(info) == "table" then
+            local name = info.title or info.name
+            if type(name) == "string" and name ~= "" then
+                title = name
+            end
+        end
+    end
+    if title then
+        Api.RememberTitle(questID, title, nil)
+    elseif char then
+        if type(char.questTitles) ~= "table" then
+            char.questTitles = {}
+        end
+        char.questTitles[questID] = false
+    end
+    return title
 end
 
 function Api.ReadCompleted(turnedIn)

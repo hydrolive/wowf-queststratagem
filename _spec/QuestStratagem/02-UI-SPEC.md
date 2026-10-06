@@ -34,7 +34,7 @@ Top block:
 - Subline: `Last leg: 40 min · +1,076 XP` using the previous completed step’s duration and XP delta.
 - Right side, stacked: `Next` and `Back` as small red-brown buttons. `Path` sits on the Next row. Not Ask. Back is hidden when this character has no earlier step. Medium and Small hide Next, Back, and Path. `/qs back` still does nothing when Back is hidden.
 
-Path opens a list anchored to the left of the window. The bar at the top reads `27/60` for a level 27 character. The fill is the levels already finished plus how far the current level's XP bar is, out of 60. The list is the stored steps you have finished, then the route in order. A finished step has the ready-check icon. The step on screen is gold and the list opens scrolled so a few finished steps sit above it and the next steps sit below. The wheel and the slider move through the rest. Deferred steps stay off the list.
+Path opens a list anchored to the left of the window. The bar is a percent of the road to 60. The end of level 27 is about halfway, so a character there reads about 50% when their finished quests are in line with the road still ahead. It does not read `27/60`. The list is one row per quest: finished quests the client can name, then the step on screen, then the camps and dungeons still ahead. The same quest is not repeated for accept, objective, and turn-in. A finished row has the ready-check icon. The step on screen is gold and the list opens scrolled so a few finished rows sit above it. The wheel and the slider move through the rest. Deferred steps stay off the list.
 
 Divider.
 

@@ -100,7 +100,7 @@ Never point at an NPC for a quest in the completed set. If the only remaining st
 ## Next and Back
 
 - The character stores the last 20 steps (`history`), including a step that auto-advanced because the quest left the log. The first rebuild after login does not invent a previous step. If Elder Knowledge, quest 95664, is already complete and the history is empty, one snapshot of the Bashana Runetotem turn-in is stored.
-- Next, while you are on the live step: mark the current step id skipped, remember it, and advance. An area step also skips the travel step for that same area. Does not abandon.
+- Next, while you are on the live step: mark the current step id skipped, remember it, and advance. An area step that is one whole NPC place also skips the travel step for that same area. A travel step titled Fly to a zone does not skip the zone. Next means you have landed, and the next step is the first camp in that zone. Next on one camp skips that camp only. Does not abandon.
 - Back: show the previous stored step, even when that id is no longer in the built route. The first Back from the live step opens that previous step. It does not open the live step again. Status reads `Review`, or `Done` when that stored step is already finished. The yellow line is that step's place, and finished steps before it show the ready-check icon. The button is hidden when the only stored step is the live one, when history is empty, or when you are already on the oldest stored step.
 - Next while reviewing walks toward the live step. If the next stored step is the live one, Next returns to the live step instead of reviewing it. It does not skip the quest you are actually on. The last Next in the history returns to that live step.
 
@@ -108,7 +108,11 @@ Never point at an NPC for a quest in the completed set. If the only remaining st
 
 A quest is on the route when its level is from two below you through one above you. An elite is on the route only when you have reached its level. Grey quests stay off. A quest with no level still counts, except Defending the Dead (30) and The Broodmother (31 elite), which use those published levels when the log has none. A finished quest in the zone you are standing in is still the turn-in. Anything outside the band stays in the log and is not the step, so Clean Quest Log does not drop it for being early or late.
 
-At 25–28 with nothing left in that band, the fast road is Freewind Post in Thousand Needles. Hillsbrad is the other road. Stonetalon is the earlier road, about 20–26, and is not the trip once its quests fall more than two levels below you.
+At 25–28 with nothing left in that band, the fast road is Freewind Post in Thousand Needles. Hillsbrad is the other road. Stonetalon is the earlier road, about 20–26, and is not the trip once its quests fall more than two levels below you. Quests still in the band, including a Stonetalon log, are the trip before Freewind.
+
+## Camps
+
+A zone taken from the quest log is not one step that lists every objective. While you are still in Thunder Bluff, Mulgore, or Skywatcher Plateau, the step is Fly to that zone and the only objective is the flight. The body names the first camp. Next assumes you are in the zone. The arrow then points at the first camp where those objectives overlap, and each objective names the camp. Finishing that camp, or Next, moves you to the next camp. In Stonetalon the camps are The Charred Vale (32, 68), Mirkfallon Lake, the grove on Stonetalon Peak (33, 11), and Windshear Crag (around 59, 63). A quest with no published place stays on a final step that says so, and it gets no pin. Back from the first camp to the flight clears the assumption.
 
 ## Clean Quest Log
 

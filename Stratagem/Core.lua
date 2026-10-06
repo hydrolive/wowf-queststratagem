@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.12"
+QS.VERSION = "0.1.13"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -34,6 +34,10 @@ local CHAR_DEFAULTS = {
     historyAt = nil,
     flights = {},
     questSeen = {},
+    questTitles = {},
+    questZones = {},
+    skipPockets = {},
+    assumeZone = nil,
     manualStepId = nil,
     manualFrontierId = nil,
     turnedIn = {},
@@ -120,6 +124,15 @@ function QS:InitDB()
     end
     if type(QuestStratagemCharDB.questSeen) ~= "table" then
         QuestStratagemCharDB.questSeen = {}
+    end
+    if type(QuestStratagemCharDB.questTitles) ~= "table" then
+        QuestStratagemCharDB.questTitles = {}
+    end
+    if type(QuestStratagemCharDB.questZones) ~= "table" then
+        QuestStratagemCharDB.questZones = {}
+    end
+    if type(QuestStratagemCharDB.skipPockets) ~= "table" then
+        QuestStratagemCharDB.skipPockets = {}
     end
     -- 0.1.5 could skip an area with no way back. Those skips are not in stepBack.
     if not hadBack then

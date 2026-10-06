@@ -25,7 +25,7 @@ local ZONE_LEVEL = {
 local HORDE_ZONE = {
     { max = 12, zone = "The Barrens", hub = "The Crossroads", mapID = 1413, x = 0.520, y = 0.298 },
     { max = 22, zone = "The Barrens", hub = "Camp Taurajo", mapID = 1413, x = 0.446, y = 0.586 },
-    { max = 28, zone = "Thousand Needles", hub = "Freewind Post", mapID = 1441, x = 0.460, y = 0.510, note = "Fast road for 25-28. Hillsbrad is the other road. Stonetalon is the earlier road, about 20-26." },
+    { max = 28, zone = "Thousand Needles", hub = "Freewind Post", mapID = 1441, x = 0.460, y = 0.510, note = "Fast road for 25-28 when the log has nothing left in band. Hillsbrad is the other road. Stonetalon is the earlier road, about 20-26." },
     { max = 36, zone = "Stranglethorn Vale", hub = "Grom'gol Base Camp", mapID = 1434, x = 0.318, y = 0.292 },
     { max = 44, zone = "Tanaris", hub = "Gadgetzan", mapID = 1446, x = 0.516, y = 0.287 },
     { max = 52, zone = "Un'Goro Crater", hub = "Marshal's Refuge", mapID = 1449, x = 0.446, y = 0.082 },
@@ -564,4 +564,117 @@ function Level.RemainingSeconds(plan)
         end
     end
     return seconds * (QS.Config.ClassMod() or 1) * (QS.Config.PaceMod() or 1)
+end
+
+-- Places still on the fast road. These are camps and dungeons, not quest ids.
+local function Stop(at, zone, title)
+    return { at = at, zone = zone, title = title }
+end
+
+local HORDE_ROAD = {
+    Stop(26, "Thousand Needles", "Freewind Post"),
+    Stop(26, "Thousand Needles", "The Great Lift"),
+    Stop(27, "Thousand Needles", "Darkcloud Pinnacle"),
+    Stop(27, "Thousand Needles", "Highperch"),
+    Stop(27, "Thousand Needles", "Splithoof Crag"),
+    Stop(27, "The Barrens", "Razorfen Kraul"),
+    Stop(28, "Thousand Needles", "Windbreak Canyon"),
+    Stop(28, "Thousand Needles", "Camp E'thok"),
+    Stop(28, "Thousand Needles", "Roguefeather Den"),
+    Stop(28, "Thousand Needles", "The Screeching Canyon"),
+    Stop(29, "Thousand Needles", "Tahonda Ruins"),
+    Stop(30, "Thousand Needles", "The Shimmering Flats"),
+    Stop(30, "Thousand Needles", "Mirage Raceway"),
+    Stop(30, "Thousand Needles", "Weazel's Crater"),
+    Stop(31, "Stranglethorn Vale", "Nesingwary's Expedition"),
+    Stop(32, "Stranglethorn Vale", "Grom'gol Base Camp"),
+    Stop(32, "Stranglethorn Vale", "Bal'lal Ruins"),
+    Stop(32, "Stranglethorn Vale", "Ziata'jai Ruins"),
+    Stop(33, "Stranglethorn Vale", "Zul'Kunda Ruins"),
+    Stop(33, "Stranglethorn Vale", "Ruins of Zul'Mamwe"),
+    Stop(33, "Stranglethorn Vale", "Ruins of Aboraz"),
+    Stop(34, "Stranglethorn Vale", "Venture Co. Base Camp"),
+    Stop(34, "Stranglethorn Vale", "Kurzen's Compound"),
+    Stop(35, "Stranglethorn Vale", "Crystalvein Mine"),
+    Stop(35, "Stranglethorn Vale", "Mistvale Valley"),
+    Stop(36, "Stranglethorn Vale", "Bloodsail Compound"),
+    Stop(36, "Stranglethorn Vale", "Booty Bay"),
+    Stop(36, "Stranglethorn Vale", "Gurubashi Arena"),
+    Stop(37, "Stranglethorn Vale", "The Vile Reef"),
+    Stop(37, "Stranglethorn Vale", "Jaguero Isle"),
+    Stop(38, "The Barrens", "Razorfen Downs"),
+    Stop(40, "Tanaris", "Gadgetzan"),
+    Stop(41, "Tanaris", "Steamwheedle Port"),
+    Stop(41, "Tanaris", "Noonshade Ruins"),
+    Stop(42, "Tanaris", "Waterspring Field"),
+    Stop(42, "Tanaris", "Broken Pillar"),
+    Stop(43, "Tanaris", "Lost Rigger Cove"),
+    Stop(43, "Tanaris", "Thistleshrub Valley"),
+    Stop(44, "Tanaris", "Southbreak Shore"),
+    Stop(44, "Tanaris", "Eastmoon Ruins"),
+    Stop(44, "Tanaris", "Southmoon Ruins"),
+    Stop(44, "Tanaris", "Zul'Farrak"),
+    Stop(44, "Tanaris", "Caverns of Time"),
+    Stop(45, "Tanaris", "Land's End"),
+    Stop(45, "Tanaris", "Valley of the Watchers"),
+    Stop(46, "Desolace", "Maraudon"),
+    Stop(48, "Un'Goro Crater", "Marshal's Refuge"),
+    Stop(49, "Un'Goro Crater", "Lakkari Tar Pits"),
+    Stop(49, "Un'Goro Crater", "Golakka Hot Springs"),
+    Stop(49, "Un'Goro Crater", "The Marshlands"),
+    Stop(50, "Un'Goro Crater", "Fire Plume Ridge"),
+    Stop(50, "Un'Goro Crater", "Fungal Rock"),
+    Stop(50, "Un'Goro Crater", "Ironstone Plateau"),
+    Stop(50, "Swamp of Sorrows", "Temple of Atal'Hakkar"),
+    Stop(51, "Un'Goro Crater", "Terror Run"),
+    Stop(51, "Un'Goro Crater", "The Slithering Scar"),
+    Stop(53, "Winterspring", "Everlook"),
+    Stop(54, "Burning Steppes", "Blackrock Depths"),
+    Stop(55, "Winterspring", "Timbermaw Hold"),
+    Stop(56, "Winterspring", "Starfall Village"),
+    Stop(56, "Winterspring", "Owl Wing Thicket"),
+    Stop(56, "Winterspring", "Lake Kel'Theril"),
+    Stop(56, "Feralas", "Dire Maul"),
+    Stop(57, "Winterspring", "Frostsaber Rock"),
+    Stop(57, "Winterspring", "Mazthoril"),
+    Stop(58, "Winterspring", "Ice Thistle Hills"),
+    Stop(58, "Winterspring", "Frostwhisper Gorge"),
+    Stop(58, "Burning Steppes", "Lower Blackrock Spire"),
+    Stop(59, "Winterspring", "Darkwhisper Gorge"),
+    Stop(59, "Winterspring", "Winterfall Village"),
+    Stop(60, "Western Plaguelands", "Scholomance"),
+    Stop(60, "Eastern Plaguelands", "Stratholme"),
+}
+
+local ALLIANCE_ROAD = {
+    Stop(26, "Duskwood", "Darkshire"),
+    Stop(27, "Duskwood", "Raven Hill Cemetery"),
+    Stop(28, "Duskwood", "The Yorgen Farmstead"),
+    Stop(30, "Stranglethorn Vale", "Rebel Camp"),
+    Stop(31, "Stranglethorn Vale", "Nesingwary's Expedition"),
+    Stop(32, "Stranglethorn Vale", "Bal'lal Ruins"),
+    Stop(34, "Stranglethorn Vale", "Kurzen's Compound"),
+    Stop(36, "Stranglethorn Vale", "Booty Bay"),
+    Stop(40, "Tanaris", "Gadgetzan"),
+    Stop(43, "Tanaris", "Lost Rigger Cove"),
+    Stop(44, "Tanaris", "Zul'Farrak"),
+    Stop(48, "Un'Goro Crater", "Marshal's Refuge"),
+    Stop(50, "Un'Goro Crater", "Fire Plume Ridge"),
+    Stop(52, "Un'Goro Crater", "Terror Run"),
+    Stop(55, "Eastern Plaguelands", "Light's Hope Chapel"),
+    Stop(58, "Eastern Plaguelands", "Tyr's Hand"),
+    Stop(60, "Eastern Plaguelands", "Stratholme"),
+}
+
+function Level.AheadStops(level, faction)
+    level = tonumber(level) or 1
+    local list = faction == "Alliance" and ALLIANCE_ROAD or HORDE_ROAD
+    local out = {}
+    for i = 1, #list do
+        local stop = list[i]
+        if stop.at >= level - 2 then
+            out[#out + 1] = stop
+        end
+    end
+    return out
 end

@@ -465,6 +465,307 @@ local function Arrived(cluster)
     return ZoneHere(cluster.zone)
 end
 
+local function ClearStaleAssume(char)
+    if not char or not char.assumeZone then
+        return
+    end
+    local place = QS.Api and QS.Api.Place and QS.Api.Place()
+    if not place then
+        return
+    end
+    local zone = place.zone or ""
+    if zone == "" then
+        return
+    end
+    if zone == char.assumeZone or NamedHere(zone) or NamedHere(place.sub) or NamedHere(place.real) then
+        return
+    end
+    char.assumeZone = nil
+end
+
+local function TripArrived(char, zone)
+    if ZoneHere(zone) then
+        return true
+    end
+    return char and char.assumeZone == zone or false
+end
+
+-- Public places for log objectives that share a zone. A pin is set only
+-- where a public page gives the spot. Quest ids stay the ids in the log.
+local POCKETS = {
+    ["Stonetalon Mountains"] = {
+        {
+            key = "charred-vale",
+            name = "The Charred Vale",
+            where = "south of Sun Rock Retreat",
+            mapID = 1442,
+            x = 0.32,
+            y = 0.68,
+            order = 1,
+            patterns = { "bloodfury", "glittering sunstone", "incendrite" },
+            source = "wowhead-classic-6282",
+        },
+        {
+            key = "mirkfallon",
+            name = "Mirkfallon Lake",
+            where = "north of Sun Rock Retreat, along the water",
+            mapID = 1442,
+            x = 0.48,
+            y = 0.40,
+            order = 2,
+            patterns = { "gaea seed" },
+            source = "warcraft-wiki-cycle-of-rebirth",
+        },
+        {
+            key = "peak",
+            name = "Stonetalon Peak",
+            where = "the grove on the peak, north past Mirkfallon Lake",
+            mapID = 1442,
+            x = 0.33,
+            y = 0.11,
+            order = 3,
+            patterns = { "cenarius", "cenarion botanist" },
+            source = "warcraft-wiki-cenarion-botanist",
+        },
+        {
+            key = "windshear",
+            name = "Windshear Crag",
+            where = "east of Sun Rock Retreat",
+            mapID = 1442,
+            x = 0.59,
+            y = 0.63,
+            order = 4,
+            patterns = { "super reaper", "venture co" },
+            source = "forever-codex-stonetalon",
+        },
+    },
+}
+
+local function PocketBlob(row)
+    local parts = { string.lower(row.title or "") }
+    for i = 1, #(row.objectives or {}) do
+        local obj = row.objectives[i]
+        if obj.text then
+            parts[#parts + 1] = string.lower(obj.text)
+        end
+    end
+    return table.concat(parts, " ")
+end
+
+local function PocketScore(def, blob)
+    local score = 0
+    for i = 1, #def.patterns do
+        if string.find(blob, def.patterns[i], 1, true) then
+            score = score + 1
+        end
+    end
+    return score
+end
+
+local function WithPlace(name, placeName)
+    if not placeName or placeName == "" then
+        return name
+    end
+    if name and string.find(string.lower(name), string.lower(placeName), 1, true) then
+        return name
+    end
+    return (name or placeName) .. " · " .. placeName
+end
+
+local function GoalsNamed(rows, placeName)
+    local goals = {}
+    for i = 1, #rows do
+        local row = rows[i]
+        if row.complete then
+            goals[#goals + 1] = {
+                name = WithPlace("Turn in " .. row.title, placeName),
+                have = 0,
+                need = 1,
+            }
+        else
+            local added = false
+            for j = 1, #row.objectives do
+                local obj = row.objectives[j]
+                if not obj.finished then
+                    goals[#goals + 1] = {
+                        name = WithPlace(obj.text or row.title, placeName),
+                        have = obj.have or 0,
+                        need = obj.need or 0,
+                    }
+                    added = true
+                end
+            end
+            if not added then
+                goals[#goals + 1] = { name = WithPlace(row.title, placeName), have = 0, need = 1 }
+            end
+        end
+    end
+    return goals
+end
+
+local function ActivePockets(cluster, char)
+    local defs = POCKETS[cluster.zone]
+    local buckets = {}
+    local order = {}
+    local function bucket(def)
+        local found = buckets[def.key]
+        if not found then
+            found = {
+                key = def.key,
+                name = def.name,
+                where = def.where,
+                mapID = def.mapID,
+                x = def.x,
+                y = def.y,
+                order = def.order or 50,
+                source = def.source,
+                rows = {},
+            }
+            buckets[def.key] = found
+            order[#order + 1] = found
+        end
+        return found
+    end
+    if defs then
+        for i = 1, #defs do
+            bucket(defs[i])
+        end
+    end
+    local rest = {
+        key = "rest",
+        name = "Other quests in " .. (cluster.zone or "this zone"),
+        where = "no published place for these",
+        order = 100,
+        rows = {},
+    }
+    for i = 1, #cluster.rows do
+        local row = cluster.rows[i]
+        local blob = PocketBlob(row)
+        local best, bestScore
+        if defs then
+            for d = 1, #defs do
+                local score = PocketScore(defs[d], blob)
+                if score > 0 and (not best or score > bestScore) then
+                    best = defs[d]
+                    bestScore = score
+                end
+            end
+        end
+        if best then
+            local found = bucket(best)
+            found.rows[#found.rows + 1] = row
+        else
+            rest.rows[#rest.rows + 1] = row
+        end
+    end
+    if #rest.rows > 0 then
+        order[#order + 1] = rest
+    end
+    local skips = (char and char.skipPockets) or {}
+    local slug = Slug(cluster.zone)
+    local active = {}
+    for i = 1, #order do
+        local pocket = order[i]
+        if #pocket.rows > 0 then
+            pocket.id = slug .. "-" .. pocket.key
+            if not skips[pocket.id] then
+                active[#active + 1] = pocket
+            end
+        end
+    end
+    table.sort(active, function(a, b)
+        if a.order == b.order then
+            return a.name < b.name
+        end
+        return a.order < b.order
+    end)
+    return active
+end
+
+local function PocketStep(cluster, pocket)
+    local place = QS.Api and QS.Api.Place and QS.Api.Place()
+    local sub = place and place.sub or ""
+    local standing = sub == pocket.name or ZoneHere(pocket.name)
+    local title = pocket.name
+    if not standing then
+        title = "Go to " .. pocket.name
+    end
+    local text = "These overlap in " .. pocket.name .. ", " .. (pocket.where or pocket.name) .. "."
+    if pocket.x then
+        text = text .. " The arrow points there."
+    else
+        text = text .. " That spot has no published pin."
+    end
+    local ids = {}
+    for i = 1, #pocket.rows do
+        ids[#ids + 1] = pocket.rows[i].id
+    end
+    table.sort(ids)
+    local step = {
+        id = "dyn-area-pocket-" .. pocket.id,
+        pocket = pocket.id,
+        cluster = "area-" .. Slug(cluster.zone),
+        kind = "area",
+        title = title,
+        text = text,
+        zone = cluster.zone,
+        placeName = pocket.name,
+        questIDs = ids,
+        goalHeader = "Area",
+        goals = GoalsNamed(pocket.rows, pocket.name),
+        minutes = 12,
+        confidence = pocket.x and "reported" or "log",
+        source = pocket.source or "quest-log",
+    }
+    if pocket.mapID and pocket.x and pocket.y then
+        step.mapID = pocket.mapID
+        step.x = pocket.x
+        step.y = pocket.y
+        step.pin = "approx"
+    end
+    return step
+end
+
+local function TravelStep(chosen, tail, lead)
+    local byWind = LeavingByWind(chosen.zone)
+    local title = "Go to " .. chosen.zone
+    local mapID, x, y, npc
+    local text = "Go to " .. chosen.zone .. "."
+    local source = "quest-log"
+    if byWind then
+        title = "Fly to " .. chosen.zone
+        mapID = 1456
+        x = 0.47
+        y = 0.49
+        npc = "Tal"
+        text = WindText(chosen.zone)
+        source = "wowhead-thunder-bluff-tal"
+    end
+    if lead then
+        text = text .. " First stop is " .. lead.name .. ", " .. (lead.where or lead.name) .. "."
+    end
+    return {
+        id = chosen.goId or ("dyn-area-go-" .. Slug(chosen.key) .. tail),
+        cluster = "area-" .. Slug(chosen.zone),
+        kind = "travel",
+        title = title,
+        text = text,
+        zone = chosen.zone,
+        mapID = mapID,
+        x = x,
+        y = y,
+        pin = (mapID and x and y) and "approx" or nil,
+        npc = npc,
+        completeOnZone = chosen.zone,
+        goalHeader = "Area",
+        goals = { { name = title, have = 0, need = 1 } },
+        flyGoal = byWind and title or nil,
+        minutes = 15,
+        confidence = byWind and "reported" or "log",
+        source = source,
+    }
+end
+
 local function AreaStep(cluster, ids, tail, arrived, others)
     local place = cluster.place
     local ready, open = Tally(cluster)
@@ -555,6 +856,7 @@ function Area.Apply(built, char, log)
     if not built or not built.steps or not log or char.demo or built.key == "demo" then
         return
     end
+    ClearStaleAssume(char)
     local raw = Rows(log)
     local rows = {}
     for i = 1, #raw do
@@ -585,51 +887,66 @@ function Area.Apply(built, char, log)
     end
     local block = {}
     local place = chosen.place
-    -- A named plateau stays on the area step, so a starter zone does not grey the walk.
-    if not arrived and not (place and place.placeName) then
-        local goals = GoalsFor(chosen)
-        local byWind = LeavingByWind(chosen.zone)
-        local title = "Go to " .. chosen.zone
-        local arrive = "Arrive in " .. chosen.zone
-        local mapID = place and place.mapID or nil
-        local x = place and place.x or nil
-        local y = place and place.y or nil
-        local npc = place and place.npc or nil
-        local text = Describe(chosen, others, false)
-        local source = (place and place.source) or "quest-log"
-        if byWind then
-            title = "Fly to " .. chosen.zone
-            arrive = title
-            mapID = 1456
-            x = 0.47
-            y = 0.49
-            npc = "Tal"
-            text = WindText(chosen.zone) .. " " .. text
-            source = "wowhead-thunder-bluff-tal"
+    -- A log zone is one pocket at a time. A named NPC place stays one step.
+    if not place then
+        local active = ActivePockets(chosen, char)
+        if #active == 0 then
+            return
         end
-        table.insert(goals, 1, { name = arrive, have = 0, need = 1 })
-        block[#block + 1] = {
-            id = chosen.goId or ("dyn-area-go-" .. Slug(chosen.key) .. tail),
-            cluster = "area-" .. Slug(chosen.zone),
-            kind = "travel",
-            title = title,
-            text = text,
-            zone = chosen.zone,
-            mapID = mapID,
-            x = x,
-            y = y,
-            pin = (mapID and x and y) and "approx" or nil,
-            npc = npc,
-            completeOnZone = chosen.zone,
-            goalHeader = "Area",
-            goals = AppendExtras(goals, chosen, others, false),
-            flyGoal = byWind and title or nil,
-            minutes = 15,
-            confidence = (place or byWind) and "reported" or "log",
-            source = source,
-        }
+        local here = TripArrived(char, chosen.zone)
+        if not here then
+            block[#block + 1] = TravelStep(chosen, tail, active[1])
+        end
+        for i = 1, #active do
+            block[#block + 1] = PocketStep(chosen, active[i])
+        end
+    else
+        -- A named plateau stays on the area step, so a starter zone does not grey the walk.
+        if not arrived and not place.placeName then
+            local goals = GoalsFor(chosen)
+            local byWind = LeavingByWind(chosen.zone)
+            local title = "Go to " .. chosen.zone
+            local arrive = "Arrive in " .. chosen.zone
+            local mapID = place.mapID
+            local x = place.x
+            local y = place.y
+            local npc = place.npc
+            local text = Describe(chosen, others, false)
+            local source = place.source or "quest-log"
+            if byWind then
+                title = "Fly to " .. chosen.zone
+                arrive = title
+                mapID = 1456
+                x = 0.47
+                y = 0.49
+                npc = "Tal"
+                text = WindText(chosen.zone) .. " " .. text
+                source = "wowhead-thunder-bluff-tal"
+            end
+            table.insert(goals, 1, { name = arrive, have = 0, need = 1 })
+            block[#block + 1] = {
+                id = chosen.goId or ("dyn-area-go-" .. Slug(chosen.key) .. tail),
+                cluster = "area-" .. Slug(chosen.zone),
+                kind = "travel",
+                title = title,
+                text = text,
+                zone = chosen.zone,
+                mapID = mapID,
+                x = x,
+                y = y,
+                pin = (mapID and x and y) and "approx" or nil,
+                npc = npc,
+                completeOnZone = chosen.zone,
+                goalHeader = "Area",
+                goals = AppendExtras(goals, chosen, others, false),
+                flyGoal = byWind and title or nil,
+                minutes = 15,
+                confidence = (place or byWind) and "reported" or "log",
+                source = source,
+            }
+        end
+        block[#block + 1] = AreaStep(chosen, ids, tail, arrived, others)
     end
-    block[#block + 1] = AreaStep(chosen, ids, tail, arrived, others)
     local onMuln = place and place.npc == "Muln Earthfury"
     local plateauSkipped = char.skips and char.skips["dyn-opportunity-plateau"]
     if built.plateauLead and not onMuln and not plateauSkipped then

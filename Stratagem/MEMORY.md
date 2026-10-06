@@ -288,6 +288,14 @@ Path opens a list of finished steps and the route ahead. The bar reads the curre
 
 Lua files for this pass were parsed as Lua 5.1. The fast band, the 27 route, and the path list were executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.13
+
+Path shows each quest once. Accept, objective, and turn-in of the same quest are one row. Finished quests the client can name, from the completion list and from titles saved off the quest log, sit above the step you are on. Camps and dungeons from here to 60 sit below it. The bar is a percent. The end of level 27 is about halfway to 60, so it reads about 50% there. It does not read 27/60. Until the client has listed dozens of finished quests, that level share is the bar. After that, fewer finished quests than camps left reads under it. Extra finished quests do not push a level 27 past halfway.
+
+A zone in the quest log is worked one camp at a time. With nothing left in Thunder Bluff, the step is Fly to Stonetalon Mountains and the only objective is that flight. The body names the first camp. Next assumes you have landed and does not skip the other camps. The arrow moves to that camp. Each objective names the place. In Stonetalon the order is The Charred Vale (about 32, 68: Bloodfury harpies, Glittering Sunstone, Incendrites), Mirkfallon Lake (Gaea Seeds, north of Sun Rock), the grove on Stonetalon Peak (about 33, 11: the Cenarius mobs), then Windshear Crag (around 59, 63: Super Reaper 6000). A quest with no published place is last and has no pin. Back onto that flight clears the assumption. Quests more than two levels below you still do not start the trip. With nothing left in the band, Freewind Post is still the fast road.
+
+Lua files for this pass were parsed as Lua 5.1. The pockets, Next on the flight, and the path percent were executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -336,3 +344,4 @@ Lua files for this pass were parsed as Lua 5.1. The fast band, the 27 route, and
 - 2026-10-06: Clean Quest Log abandons log quests the current route will not do. In-color quests the route names stay.
 - 2026-10-06: The yellow line follows the step on screen. Finished earlier steps show the ready-check icon. The first Back leaves the live step.
 - 2026-10-06: The fast band is two levels below through one level above. Elites wait until you reach their level. At 27 the road is Thousand Needles. Path shows that road as level/60.
+- 2026-10-06: Path is a percent of the road, about half at the end of level 27, one row per quest. Next on a flight assumes you have landed, and the arrow points at one overlapping camp.

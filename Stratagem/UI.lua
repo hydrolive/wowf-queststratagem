@@ -766,12 +766,12 @@ function UI:PaintPath()
     if not self.pathPanel or not self.pathPanel:IsShown() then
         return
     end
-    local rows, focus = QS.Resume.PathRows(QS.route)
+    local rows, focus, done, ahead = QS.Resume.PathRows(QS.route)
     self.pathRows = rows
     local level = UnitLevel("player") or 1
     local xp = UnitXP("player") or 0
     local xpMax = UnitXPMax("player") or 0
-    local label, fraction = QS.Resume.Journey(level, xp, xpMax)
+    local label, fraction = QS.Resume.Journey(level, xp, xpMax, done, ahead)
     self.pathLabel:SetText(label)
     local width = 308
     if fraction <= 0 then

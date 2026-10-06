@@ -117,6 +117,9 @@ function Resume.ZoneMatch(step)
     if not step.completeOnZone then
         return false
     end
+    if QS.char and QS.char.assumeZone == step.completeOnZone then
+        return true
+    end
     local zone = GetZoneText() or ""
     local real = GetRealZoneText and GetRealZoneText() or ""
     return zone == step.completeOnZone or real == step.completeOnZone or zone == step.zone
@@ -542,12 +545,24 @@ function Resume.Remember(char, step)
     end
     local last = char.history[#char.history]
     if last and last.id == step.id then
+        if char.pendingClear and char.pendingClear.id == step.id then
+            last.clear = char.pendingClear.clear
+            char.pendingClear = nil
+        end
+        if char.pendingPocket then
+            last.pocketSkip = char.pendingPocket
+            char.pendingPocket = nil
+        end
         return
     end
     local snap = Resume.Snapshot(step)
     if char.pendingClear and char.pendingClear.id == step.id then
         snap.clear = char.pendingClear.clear
         char.pendingClear = nil
+    end
+    if char.pendingPocket then
+        snap.pocketSkip = char.pendingPocket
+        char.pendingPocket = nil
     end
     char.history[#char.history + 1] = snap
     while #char.history > 20 do
@@ -633,14 +648,26 @@ function Resume.Next()
     if not step then
         return
     end
-    char.skips[step.id] = true
-    local clear = { step.id }
-    if IsAreaFamily(step) and step.cluster then
-        for i = 1, #route.steps do
-            local other = route.steps[i]
-            if other.id ~= step.id and other.cluster == step.cluster and IsAreaFamily(other) then
-                char.skips[other.id] = true
-                clear[#clear + 1] = other.id
+    local clear = {}
+    if step.kind == "travel" and step.completeOnZone then
+        -- Next on the flight means you are in the destination. The pockets stay.
+        char.assumeZone = step.completeOnZone
+    else
+        char.skips[step.id] = true
+        clear[1] = step.id
+        if step.pocket then
+            if type(char.skipPockets) ~= "table" then
+                char.skipPockets = {}
+            end
+            char.skipPockets[step.pocket] = true
+            char.pendingPocket = step.pocket
+        elseif IsAreaFamily(step) and step.cluster then
+            for i = 1, #route.steps do
+                local other = route.steps[i]
+                if other.id ~= step.id and other.cluster == step.cluster and IsAreaFamily(other) and not other.pocket then
+                    char.skips[other.id] = true
+                    clear[#clear + 1] = other.id
+                end
             end
         end
     end
@@ -658,6 +685,9 @@ function ReleaseSkip(char, snap)
     end
     for i = 1, #snap.clear do
         char.skips[snap.clear[i]] = nil
+    end
+    if snap.pocketSkip and type(char.skipPockets) == "table" then
+        char.skipPockets[snap.pocketSkip] = nil
     end
     char.manualStepId = snap.id
 end
@@ -686,7 +716,12 @@ function Resume.Back()
         end
         char.historyAt = char.historyAt - 1
     end
-    ReleaseSkip(char, char.history[char.historyAt])
+    local snap = char.history[char.historyAt]
+    ReleaseSkip(char, snap)
+    if snap and snap.kind == "travel" and snap.completeOnZone
+        and char.assumeZone == snap.completeOnZone then
+        char.assumeZone = nil
+    end
     QS:Rebuild()
 end
 
@@ -928,20 +963,45 @@ function Resume.Reset()
     char.reviewSeeded = nil
     char.manualStepId = nil
     char.manualFrontierId = nil
+    char.assumeZone = nil
+    char.skipPockets = {}
     QS:Print("Skips cleared. Resuming from the quest log.")
     QS:Rebuild()
 end
 
-function Resume.Journey(level, xp, xpMax)
-    level = tonumber(level) or 1
-    if level < 1 then
-        level = 1
+function Resume.NormTitle(title)
+    if type(title) ~= "string" then
+        return nil
     end
-    if level > 60 then
-        level = 60
+    local name = string.lower(title)
+    local prefixes = {
+        "turn in to ", "turn in ", "fly to ", "go to ",
+        "pick up at the ", "pick up at ", "pick up ",
+        "talk to ", "kill mobs in ",
+    }
+    local changed = true
+    while changed do
+        changed = false
+        for i = 1, #prefixes do
+            local prefix = prefixes[i]
+            if string.sub(name, 1, #prefix) == prefix then
+                name = string.sub(name, #prefix + 1)
+                changed = true
+            end
+        end
     end
+    name = string.gsub(name, "^%s+", "")
+    name = string.gsub(name, "%s+$", "")
+    name = string.gsub(name, "%s+", " ")
+    if name == "" then
+        return nil
+    end
+    return name
+end
+
+local function LevelShare(level, xp, xpMax)
     if level >= 60 then
-        return "60/60", 1
+        return 1
     end
     xp = tonumber(xp) or 0
     xpMax = tonumber(xpMax) or 0
@@ -954,43 +1014,187 @@ function Resume.Journey(level, xp, xpMax)
     if xp > xpMax then
         xp = xpMax
     end
-    local fraction = (level - 1 + (xp / xpMax)) / 60
-    if fraction < 0 then
-        fraction = 0
+    -- The end of level 27 is about halfway to 60 on this road.
+    local share = (level - 1 + (xp / xpMax)) / 54
+    if share < 0 then
+        share = 0
     end
-    if fraction > 1 then
-        fraction = 1
+    if share > 1 then
+        share = 1
     end
-    return level .. "/60", fraction
+    return share
+end
+
+function Resume.Journey(level, xp, xpMax, done, ahead)
+    level = tonumber(level) or 1
+    if level < 1 then
+        level = 1
+    end
+    if level > 60 then
+        level = 60
+    end
+    if level >= 60 then
+        return "100%", 1
+    end
+    local share = LevelShare(level, xp, xpMax)
+    done = tonumber(done) or 0
+    ahead = tonumber(ahead) or 0
+    local fraction = share
+    -- A short turn-in log is not the whole history. Until dozens of
+    -- finished quests are known, the bar stays on the level's share.
+    if done >= 80 and (done + ahead) > 0 then
+        local real = done / (done + ahead)
+        if real < 0 then
+            real = 0
+        end
+        if real > 1 then
+            real = 1
+        end
+        -- A long finished list must not read as nearly done while half the
+        -- road to 60 is still ahead. Extra quests can sit under that share.
+        if real > share then
+            fraction = share
+        else
+            fraction = real
+        end
+    end
+    local pct = math.floor(fraction * 100 + 0.5)
+    if pct < 0 then
+        pct = 0
+    end
+    if pct > 100 then
+        pct = 100
+    end
+    return pct .. "%", fraction
+end
+
+local function LearnStepTitle(step)
+    if not step or not QS.Api or not QS.Api.RememberTitle then
+        return
+    end
+    local title = step.questName
+    if type(title) ~= "string" or title == "" then
+        title = step.title
+        if Resume.NormTitle(title) ~= string.lower(title or "") then
+            return
+        end
+    end
+    QS.Api.RememberTitle(step.questID, title, step.zone)
+    local ids = step.questIDs
+    if ids and step.questName then
+        for i = 1, #ids do
+            QS.Api.RememberTitle(ids[i], step.questName, step.zone)
+        end
+    end
+end
+
+local function PreferState(old, new)
+    local rank = { ahead = 1, skip = 2, done = 3, now = 4 }
+    if (rank[new] or 0) >= (rank[old] or 0) then
+        return new
+    end
+    return old
 end
 
 function Resume.PathRows(route)
     local rows = {}
+    local seen = {}
     local steps = route and route.steps or {}
     local index = route and route.index
     local log = route and route.log or { inLog = {}, completed = {} }
-    local onRoute = {}
+    local completed = log.completed or {}
     for i = 1, #steps do
-        local id = steps[i].id
-        if id then
-            onRoute[id] = true
-        end
+        LearnStepTitle(steps[i])
     end
     local hist = QS.char and QS.char.history
     if type(hist) == "table" then
         for i = 1, #hist do
+            LearnStepTitle(hist[i])
+        end
+    end
+
+    local function add(row)
+        local key = row.key
+        if not key then
+            return nil
+        end
+        local prev = seen[key]
+        if prev then
+            prev.state = PreferState(prev.state, row.state)
+            if row.state == "now" then
+                prev.id = row.id or prev.id
+                prev.title = row.title or prev.title
+                prev.zone = row.zone or prev.zone
+            end
+            return prev
+        end
+        seen[key] = row
+        rows[#rows + 1] = row
+        return row
+    end
+
+    local function keyFor(title, questID)
+        local norm = Resume.NormTitle(title)
+        if norm then
+            return "t:" .. norm
+        end
+        if questID and questID > 0 then
+            return "q:" .. questID
+        end
+        return nil
+    end
+
+    local ids = {}
+    local doneCount = 0
+    for id, v in pairs(completed) do
+        if v then
+            doneCount = doneCount + 1
+            ids[#ids + 1] = id
+        end
+    end
+    table.sort(ids)
+    local zones = (QS.char and QS.char.questZones) or {}
+    for i = 1, #ids do
+        local id = ids[i]
+        local title = QS.Api and QS.Api.TitleFor and QS.Api.TitleFor(id)
+        if title then
+            add({
+                key = keyFor(title, id),
+                id = "done-" .. tostring(id),
+                title = title,
+                zone = zones[id],
+                state = "done",
+            })
+        end
+    end
+
+    local function consider(step, state)
+        if not step then
+            return
+        end
+        local title = step.questName
+        if type(title) ~= "string" or title == "" then
+            title = step.title or Resume.Caption(step)
+        end
+        add({
+            key = keyFor(title, step.questID),
+            id = step.id,
+            title = title,
+            zone = step.placeName or step.zone,
+            state = state,
+        })
+    end
+
+    if type(hist) == "table" then
+        for i = 1, #hist do
             local row = hist[i]
-            if row and row.id and not onRoute[row.id] and Resume.Done(row, log) then
-                rows[#rows + 1] = {
-                    id = row.id,
-                    title = row.title or Resume.Caption(row),
-                    zone = row.zone,
-                    state = "done",
-                }
+            if row and row.id and Resume.Done(row, log) then
+                consider(row, "done")
             end
         end
     end
-    local focus = 1
+
+    local aheadCount = 0
     for i = 1, #steps do
         local step = steps[i]
         local show = true
@@ -1008,21 +1212,67 @@ function Resume.PathRows(route)
             elseif index and i < index then
                 state = "skip"
             end
-            rows[#rows + 1] = {
-                id = step.id,
-                title = step.title or Resume.Caption(step),
-                zone = step.zone,
-                state = state,
-            }
-            if i == index then
-                focus = #rows
-            end
+            consider(step, state)
         end
+    end
+
+    local faction = QS.identity and QS.identity.faction
+    local level = UnitLevel and UnitLevel("player") or 1
+    if QS.Level and QS.Level.AheadStops then
+        local stops = QS.Level.AheadStops(level, faction)
+        for i = 1, #stops do
+            local stop = stops[i]
+            add({
+                key = keyFor(stop.title, nil),
+                id = "road-" .. tostring(stop.at) .. "-" .. (stop.title or i),
+                title = stop.title,
+                zone = stop.zone,
+                state = "ahead",
+            })
+        end
+    end
+
+    local ordered = {}
+    local skips, now, ahead = {}, nil, {}
+    for i = 1, #rows do
+        local row = rows[i]
+        if row.state == "done" then
+            ordered[#ordered + 1] = row
+        elseif row.state == "skip" then
+            skips[#skips + 1] = row
+        elseif row.state == "now" then
+            now = row
+        else
+            ahead[#ahead + 1] = row
+        end
+    end
+    for i = 1, #skips do
+        ordered[#ordered + 1] = skips[i]
+    end
+    local focus = #ordered + 1
+    if now then
+        ordered[#ordered + 1] = now
+        focus = #ordered
+    end
+    for i = 1, #ahead do
+        ordered[#ordered + 1] = ahead[i]
+        aheadCount = aheadCount + 1
+    end
+    if now then
+        aheadCount = aheadCount + 1
     end
     if focus < 1 then
         focus = 1
     end
-    return rows, focus
+    if focus > #ordered then
+        focus = #ordered
+    end
+    if focus < 1 then
+        focus = 1
+    end
+    ordered.doneCount = doneCount
+    ordered.aheadCount = aheadCount
+    return ordered, focus, doneCount, aheadCount
 end
 
 function Resume.Where()

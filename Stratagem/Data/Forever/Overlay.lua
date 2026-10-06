@@ -1,4 +1,10 @@
 -- Stratagem changelog
+-- 0.1.13 (2026-10-06)
+-- Path lists each quest once, then the camps still ahead, and the bar
+-- is a percent. The end of level 27 reads about 50%. Finished quests
+-- the client can name stay on the list. Next on Fly to a zone assumes
+-- you have landed. The next step is one overlapping camp, and each
+-- objective names that place. The arrow points at the camp.
 -- 0.1.12 (2026-10-06)
 -- A quest more than one level above you waits. An elite waits until
 -- you reach its level. Quests more than two levels below you are not
