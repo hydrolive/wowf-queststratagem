@@ -7,8 +7,8 @@ Reference screenshots supplied 2026-10-05 (Bones). Match hierarchy and density. 
 - Name: `QuestStratagemFrame`. Parent: UIParent. Movable, clamped.
 - Left-drag on the title bar moves. Position saved.
 - Backdrop: dark stone, 1px gold edge, 4px corner. Classic-safe: `Interface\DialogFrame` pieces or a solid `0.10, 0.09, 0.08` fill plus gold `0.78, 0.62, 0.28` border. No retail-only atlas required.
-- Icon: 36px compass/arrow medallion overlapping the top-left corner, gold ring. Not a skull.
-- Title text: `Stratagem` in gold, centered. Small size may hide the title bar text but keeps the icon.
+- No medallion and no ring on the window. The minimap button still uses the compass.
+- Title text: `Stratagem` in gold, centered. Small size hides the title.
 - Close (X) hides the frame. Minimap button, `/qs`, or `/stratagem` shows it. Minus is not a separate mode; right-click is the size cycle. A small size-cycle button may sit where Bones puts minus, for discoverability, and does the same thing as right-click.
 
 ## Size cycle
@@ -22,6 +22,8 @@ Right-click anywhere on the frame cycles. Saved per character.
 | Small | 168 × 52 | Arrow and distance only |
 
 All three include the arrow. Font sizes do not jump so hard that the arrow moves between sizes; pin the arrow to the left padding.
+
+The current step is also a pin on the map. Use the Blizzard user waypoint when `C_Map.SetUserWaypoint` is allowed on that map, and super-track it. TomTom is the fallback, with its crazy arrow left off. A step with no coordinates removes the pin this addon placed.
 
 ## Large (screenshot 1)
 

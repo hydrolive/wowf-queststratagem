@@ -10,4 +10,4 @@ After any change under `Stratagem/`:
 2. Commit the addon, the docs, and the changelog together, and push to GitHub.
 3. Deploy `Stratagem/` to `D:\WoW\World of Warcraft\_classic_beta_\Interface\AddOns\Stratagem`. Remove a leftover `QuestStratagem` folder in that AddOns directory. Confirm the copied files match the source.
 
-Do not invent Forever quest ids. A quest id in the guide needs a public page. The addon stays offline: no HTTP, no Ask, no auto-accept.
+Do not invent Forever quest ids. A quest id in the guide needs a public page. The addon stays offline: no HTTP and no Ask. Turn-ins are automatic while an NPC dialog is open. An accept is automatic only when the route names that quest, it is the only follow-up of a turn-in the route was on, or another player shares a dungeon quest.

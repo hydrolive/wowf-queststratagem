@@ -158,17 +158,14 @@ function UI:ApplySize()
     self.stepTitle:SetShown(large or medium)
     self.dist:SetShown(true)
     self.segments:SetShown(large or medium)
-    self.icon:SetShown(true)
     self.arrow:SetShown(true)
 
-    self.icon:ClearAllPoints()
     self.arrow:ClearAllPoints()
     self.dist:ClearAllPoints()
     self.stepTitle:ClearAllPoints()
     self.segments:ClearAllPoints()
 
     if large then
-        self.icon:SetPoint("TOPLEFT", frame, "TOPLEFT", -8, 8)
         self.arrow:SetSize(28, 28)
         self.arrow:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -148)
         self.stepTitle:SetPoint("TOPLEFT", frame, "TOPLEFT", 52, -146)
@@ -178,7 +175,6 @@ function UI:ApplySize()
         self.segments:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -128)
         self.segments:SetSize(428, 8)
     elseif medium then
-        self.icon:SetPoint("LEFT", frame, "LEFT", -6, 6)
         self.arrow:SetSize(28, 28)
         self.arrow:SetPoint("LEFT", frame, "LEFT", 12, 6)
         self.stepTitle:SetPoint("LEFT", self.arrow, "RIGHT", 8, 8)
@@ -188,7 +184,6 @@ function UI:ApplySize()
         self.segments:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 12, 8)
         self.segments:SetSize(436, 6)
     else
-        self.icon:SetPoint("LEFT", frame, "LEFT", -6, 4)
         self.arrow:SetSize(26, 26)
         self.arrow:SetPoint("LEFT", frame, "LEFT", 10, 0)
         self.dist:SetPoint("LEFT", self.arrow, "RIGHT", 8, 0)
@@ -650,23 +645,8 @@ function UI:Init()
     frame:SetPoint(point, UIParent, relative, QS.char.x or 0, QS.char.y or 80)
     self.frame = frame
 
-    local icon = CreateFrame("Frame", nil, frame)
-    icon:SetSize(36, 36)
-    local iconBg = Strip(icon, "BACKGROUND")
-    iconBg:SetAllPoints()
-    iconBg:SetColorTexture(0.12, 0.10, 0.08, 1)
-    local ring = icon:CreateTexture(nil, "OVERLAY")
-    ring:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
-    ring:SetPoint("CENTER", 0, 0)
-    ring:SetSize(54, 54)
-    local art = icon:CreateTexture(nil, "ARTWORK")
-    art:SetTexture("Interface\\AddOns\\Stratagem\\icon")
-    art:SetSize(28, 28)
-    art:SetPoint("CENTER", 0, 0)
-    self.icon = icon
-
     self.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    self.title:SetPoint("TOP", frame, "TOP", 8, -10)
+    self.title:SetPoint("TOP", frame, "TOP", 0, -10)
     self.title:SetText("Stratagem")
     self.title:SetTextColor(RGB(QS.COLOR.gold))
 
@@ -836,7 +816,7 @@ end
 
 function UI:BuildConfig()
     local panel = CreateFrame("Frame", "QuestStratagemConfig", UIParent)
-    panel:SetSize(340, 460)
+    panel:SetSize(340, 500)
     panel:SetFrameStrata("HIGH")
     panel:SetClampedToScreen(true)
     panel:SetPoint("CENTER", UIParent, "CENTER", 220, 0)
@@ -914,6 +894,7 @@ function UI:BuildConfig()
         { "classQuests", "Class quests" },
         { "professionSteps", "Profession steps" },
         { "includeStubs", "Include stub data" },
+        { "autoHand", "Auto turn-in and accept" },
     }
     for i = 1, #toggles do
         local key, label = toggles[i][1], toggles[i][2]
@@ -928,6 +909,17 @@ function UI:BuildConfig()
         text:SetText(label)
         text:SetTextColor(RGB(QS.COLOR.body))
         row.key = key
+        if key == "autoHand" then
+            row:SetScript("OnEnter", function()
+                GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
+                GameTooltip:SetText("Auto turn-in and accept", 1, 0.82, 0)
+                GameTooltip:AddLine("Finished quests turn in while you talk to the NPC. The next quest is accepted when Stratagem already has it, or it is the only follow-up. A shared dungeon quest is accepted. Hold Shift to leave the dialog alone.", 0.9, 0.88, 0.83, true)
+                GameTooltip:Show()
+            end)
+            row:SetScript("OnLeave", function()
+                GameTooltip:Hide()
+            end)
+        end
         row:SetScript("OnClick", function()
             QS.char[key] = not QS.char[key]
             QS:Rebuild()

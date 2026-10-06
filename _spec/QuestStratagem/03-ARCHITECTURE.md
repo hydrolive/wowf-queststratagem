@@ -4,7 +4,7 @@ Classic-lineage addon. Lua 5.1. No vendored libraries. If HereBeDragons-2.0 is a
 
 The planning TOC below the shipped list used Interface 11507 and a single Alliance file. That placeholder is retired. The running addon uses Interface 16001, copied from a working Forever addon.
 
-## Shipped TOC (0.1.4)
+## Shipped TOC (0.1.5)
 
 The addon folder is `Stratagem/`. `## Title` is Stratagem. `## IconTexture` is `Interface\AddOns\Stratagem\icon.tga`. Saved variable names are still `QuestStratagemDB` and `QuestStratagemCharDB`.
 
@@ -13,7 +13,7 @@ The addon folder is `Stratagem/`. `## Title` is Stratagem. `## IconTexture` is `
 ## Title: Stratagem
 ## Notes: Offline 1-60 stratagem for WoW Forever. Arrow, chains, BiS.
 ## Author: Stratagem
-## Version: 0.1.4
+## Version: 0.1.5
 ## IconTexture: Interface\AddOns\Stratagem\icon.tga
 ## SavedVariables: QuestStratagemDB
 ## SavedVariablesPerCharacter: QuestStratagemCharDB
@@ -40,6 +40,8 @@ Resume.lua
 Level.lua
 Area.lua
 Live.lua
+Hand.lua
+Pin.lua
 UI.lua
 ```
 
@@ -84,6 +86,7 @@ Registered with `pcall`, so a missing event name does not stop the addon.
 - `MERCHANT_CLOSED`, `BANKFRAME_CLOSED`, `AUCTION_HOUSE_CLOSED`, `TRAINER_CLOSED`, `GOSSIP_CLOSED` — rebuild
 - `CHAT_MSG_COMBAT_HOSTILE_DEATH` — if the name is in the boss table, mark `bossDown` and rebuild
 - `PLAYER_XP_UPDATE` — clock sample only
+- `Hand.lua` registers its own frame for `GOSSIP_SHOW`, `QUEST_GREETING`, `QUEST_DETAIL`, `QUEST_PROGRESS`, `QUEST_COMPLETE`, and `QUEST_ACCEPT_CONFIRM`. Those do not go through Core.
 - OnUpdate every 2s: if the current step is a boss or a `dyn-` step and Resume says it is done, rebuild. Covers a hearth bind and a talent spend that fired no event.
 
 ## Modules
@@ -96,7 +99,9 @@ Registered with `pcall`, so a missing event name does not stop the addon.
 - `Resume` — done rules, frontier, Next, Back.
 - `Live` — hearth, talent, trainer, craft, gather lines, vendor, bank, auction, boss surfacing. See MEMORY.md "Live guide".
 - `Arrow` — bearing and yards. Instance mode hides the arrow.
-- `UI` — one frame, three sizes.
+- `Hand` — NPC turn-in, route accept, shared dungeon accept. Hold Shift to skip.
+- `Pin` — one map pin for the current step. Blizzard waypoint, else TomTom.
+- `UI` — one frame, three sizes. No corner medallion.
 - `Clock` — goal versus tracked time.
 - `Bis` — rows on the current step. Not the boss kill list.
 
@@ -117,17 +122,19 @@ Registered with `pcall`, so a missing event name does not stop the addon.
 1. `Router.Build`
 2. `Api.Snapshot`
 3. `Resume.PullForward`
-4. `Live.Apply` unless demo
-5. `Resume.Choose`
-6. `Bis.Annotate`
-7. Clock and UI
+4. `Level.Apply` unless demo
+5. `Live.Apply` unless demo
+6. `Area.Apply` unless demo
+7. `Resume.Choose`
+8. `Bis.Annotate`
+9. Clock, UI, and `Pin.Sync`
 
 ## What not to do
 
 - Do not `SendAddonMessage`.
 - Do not HTTP, and do not add Ask.
 - Do not vendor Questie or HereBeDragons.
-- Do not auto-accept.
+- Do not accept every quest an NPC offers. Accept only a route quest, the single follow-up of a route turn-in, or a shared dungeon quest.
 - Do not invent Forever quest ids or item id 0.
 - Do not invent interior dungeon coordinates.
 - Do not mutate the shared step tables while annotating gather lines.

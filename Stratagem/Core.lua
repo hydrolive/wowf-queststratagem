@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.4"
+QS.VERSION = "0.1.5"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -45,6 +45,7 @@ local CHAR_DEFAULTS = {
     routeKey = nil,
     demo = false,
     shown = true,
+    autoHand = true,
     minimapAngle = 0.8,
     factionOverride = nil,
     raceOverride = nil,
@@ -153,6 +154,9 @@ function QS:Rebuild()
     QS.Clock:OnStep(QS.route.stepId)
     if QS.UI and QS.UI.Refresh then
         QS.UI:Refresh(prevId ~= QS.route.stepId)
+    end
+    if QS.Pin and QS.Pin.Sync then
+        QS.Pin.Sync(index and built.steps[index] or nil)
     end
 end
 

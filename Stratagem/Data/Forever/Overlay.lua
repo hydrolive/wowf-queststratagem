@@ -1,4 +1,9 @@
 -- Stratagem changelog
+-- 0.1.5 (2026-10-05)
+-- Talking to an NPC turns in a finished quest. The next quest is accepted when
+-- the route names it, or it is the only follow-up of a turn-in the route was on.
+-- A dungeon quest shared by a player is accepted. Hold Shift to do it by hand.
+-- The corner medallion is gone. The current step is a pin on the map.
 -- 0.1.4 (2026-10-05)
 -- Load listens for the folder name Stratagem. 0.1.3 waited for QuestStratagem,
 -- so the window was never created and /qs and /stratagem did nothing.

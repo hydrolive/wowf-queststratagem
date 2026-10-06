@@ -29,7 +29,7 @@ Code:
 
 - Layout per `03-ARCHITECTURE.md` and API probes per `07-API-CONSTRAINTS.md`. Lua 5.1. SavedVariables per character. Embed or vendor a minimal distance helper; do not require TomTom or Questie.
 - Slash: `/qs`, `/qs next`, `/qs back`, `/qs config`, `/qs where`, `/qs reset`, `/qs api`.
-- No auto-accept, no protected-action spam, no SendAddonMessage.
+- No protected-action spam, no SendAddonMessage. NPC turn-in and the limited accept rules are in MEMORY.md rule 5.
 
 Docs to leave in the addon folder:
 

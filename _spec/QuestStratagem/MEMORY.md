@@ -20,7 +20,7 @@ David Kimball (`@cyberdyneceo`). Horde priest healer is the recent live spec con
 2. Next action is one of: pick up from a named NPC in a named zone, go to an objective, turn in, train a class skill, set or use the hearth, fly, enter a dungeon, spend the next talent point, train a profession, craft, sell or repair, bank, auction, or kill a named boss.
 3. Every size of the window has the arrow.
 4. Right-click cycles Large → Medium → Small → Large.
-5. Next and Back are manual. Accept, objective complete, and turn-in still auto-advance.
+5. Next and Back are manual. Accept, objective complete, and turn-in still auto-advance the route. An open NPC dialog turns a finished quest in. It accepts a quest only when the route names it, it is the only follow-up of a turn-in the route was on, or another player shares a dungeon quest. Hold Shift to handle that dialog yourself.
 6. On load, rebuild the frontier from the quest log and completed-quest flags. Never send the player to a quest already turned in.
 7. Path is zone-cluster optimized: pull precursors before leaving a hub if a later step returns there.
 8. A dungeon is on the route when quest XP, a quest chain, or a BiS item justifies it, or when the player is walking a named boss order. Boss steps are kills. They are not quests and they are not BiS checks. Forever dungeon mob XP is reduced; dungeon quest XP is raised. Do not add a grind-for-XP loop.
@@ -218,6 +218,18 @@ The addon folder, TOC, and window title are Stratagem. Saved variables stay `Que
 
 `ADDON_LOADED` now matches the folder name `Stratagem`. 0.1.3 still compared it to `QuestStratagem`, so saved variables were never read, the window was never created, and `/qs` and `/stratagem` returned without showing anything. Login and the slash command also create the window if that event was missed. `/stratagem` is registered as its own first alias.
 
+## Implemented in 0.1.5
+
+Talking to an NPC turns in a finished quest on its own. Hold Shift, or turn off Options → Auto turn-in and accept, to leave the dialog alone.
+
+An offered quest is accepted only when a route step names that quest id or that quest title, or the NPC just took a turn-in the route was on and is offering one follow-up. A board of extra quests stays untouched. A reward with several choices is left open unless the route names the item for the active spec. One choice, or no choice, is taken.
+
+A dungeon quest another player shares is accepted. That is `QUEST_ACCEPT_CONFIRM` or a detail frame whose giver is a player, when the quest tag is dungeon (81), the title names a dungeon in the registry, or you are already inside a dungeon.
+
+The window no longer draws the corner medallion. The minimap button still uses the compass.
+
+The current step with coordinates is one pin on the map. `C_Map.SetUserWaypoint` plus super-track when that map allows it. TomTom is the fallback and does not take the arrow. A step with no coordinates clears the pin this addon placed.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -258,3 +270,4 @@ The addon folder, TOC, and window title are Stratagem. Saved variables stay `Que
 - 2026-10-05: A level is the plan boundary. Grey quests drop out. The header estimates time to the next level, and the bar matches this level's XP. Missing mid-level quest ids stay missing; the step is a dungeon plus kills.
 - 2026-10-05: The addon name is Stratagem. The quest log picks one area at a time. A trainer step exists only for the next profession rank, and only with a real trainer pin.
 - 2026-10-05: `ADDON_LOADED` uses the folder name `Stratagem`. The Lua global stays `QuestStratagem`.
+- 2026-10-05: NPC turn-ins are automatic. Accepts are limited to the route, one follow-up of a route turn-in, and a shared dungeon quest. The current step is a map pin. The window has no corner medallion.
