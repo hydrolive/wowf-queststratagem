@@ -371,10 +371,145 @@ local function IsAreaFamily(step)
 end
 
 local SNAP_KEYS = {
-    "id", "title", "text", "zone", "mapID", "x", "y", "npc", "kind",
+    "id", "title", "text", "zone", "placeName", "mapID", "x", "y", "pin", "npc", "kind",
     "questID", "questName", "cluster", "goalHeader", "areaTurnin",
-    "confidence", "where",
+    "confidence", "where", "completeOnZone",
 }
+
+local CHECK = "|TInterface\\RaidFrame\\ReadyCheck-Ready:12|t "
+
+function Resume.Caption(step)
+    if not step then
+        return "Stratagem"
+    end
+    if step.kind == "travel" or step.kind == "fly" then
+        return step.title or "Travel"
+    end
+    local where = step.placeName
+    if not where or where == "" then
+        where = step.zone
+    end
+    if where and step.npc and where ~= step.npc then
+        return where .. " · " .. step.npc
+    end
+    if step.title and step.title ~= "" then
+        return step.title
+    end
+    return where or "Stratagem"
+end
+
+local function TrimCaption(text, limit)
+    if not text or text == "" then
+        return "Step"
+    end
+    if #text <= limit then
+        return text
+    end
+    return string.sub(text, 1, limit - 3) .. "..."
+end
+
+local LINE_BUDGET = 50
+
+local function DisplayLen(text)
+    local n = 0
+    local i = 1
+    while i <= #text do
+        if string.sub(text, i, i + 1) == "|T" then
+            local close = string.find(text, "|t", i, true)
+            if not close then
+                n = n + (#text - i + 1)
+                break
+            end
+            n = n + 2
+            i = close + 2
+        else
+            n = n + 1
+            i = i + 1
+        end
+    end
+    return n
+end
+
+local function FitPiece(text, limit, marked)
+    local mark = marked and CHECK or ""
+    local room = limit - DisplayLen(mark)
+    if room < 1 then
+        return mark
+    end
+    return mark .. TrimCaption(text, room)
+end
+
+function Resume.Trail(char, step, log)
+    local items = {}
+    local hist = char and char.history
+    local viewId = step and step.id
+    local last = 0
+    if type(hist) == "table" then
+        last = #hist
+        if step and step.review and char.historyAt then
+            last = char.historyAt - 1
+        end
+        if last > #hist then
+            last = #hist
+        end
+        if last < 0 then
+            last = 0
+        end
+    end
+    local seen = {}
+    if type(hist) == "table" then
+        for i = 1, last do
+            local row = hist[i]
+            if row.id and row.id ~= viewId and not seen[row.id] then
+                seen[row.id] = true
+                if log and Resume.Done(row, log) then
+                    items[#items + 1] = {
+                        text = Resume.Caption(row),
+                        done = true,
+                    }
+                end
+            end
+        end
+    end
+    while #items > 2 do
+        table.remove(items, 1)
+    end
+    if step then
+        local done = false
+        if step.review and log and Resume.Done(step, log) then
+            done = true
+        end
+        items[#items + 1] = {
+            text = Resume.Caption(step),
+            done = done,
+            view = true,
+        }
+    end
+    return items
+end
+
+function Resume.RouteLine(char, step, log)
+    local items = Resume.Trail(char, step, log)
+    if #items == 0 then
+        return "Stratagem"
+    end
+    local view = items[#items]
+    local parts = { FitPiece(view.text, LINE_BUDGET, view.done) }
+    local used = DisplayLen(parts[1])
+    for i = #items - 1, 1, -1 do
+        local room = LINE_BUDGET - used - 2
+        if room < 8 then
+            break
+        end
+        local piece = FitPiece(items[i].text, room, items[i].done)
+        if DisplayLen(piece) > room then
+            break
+        end
+        parts[#parts + 1] = piece
+        used = used + 2 + DisplayLen(piece)
+    end
+    return table.concat(parts, "  ")
+end
 
 function Resume.Snapshot(step)
     local copy = {}
@@ -420,6 +555,14 @@ function Resume.Remember(char, step)
     end
 end
 
+local function LiveStepId()
+    local route = QS.route
+    if not route then
+        return nil
+    end
+    return route.liveId or route.stepId
+end
+
 function Resume.CanBack(char)
     char = char or QS.char
     if not char or type(char.history) ~= "table" then
@@ -428,7 +571,14 @@ function Resume.CanBack(char)
     if char.historyAt then
         return char.historyAt > 1
     end
-    return #char.history > 0
+    if #char.history == 0 then
+        return false
+    end
+    local live = LiveStepId()
+    if #char.history == 1 and live and char.history[1].id == live then
+        return false
+    end
+    return true
 end
 
 local function RememberBack(char, shown, clear)
@@ -457,8 +607,17 @@ function Resume.Next()
     end
     if char.historyAt then
         if char.historyAt < #char.history then
-            char.historyAt = char.historyAt + 1
-            ReleaseSkip(char, char.history[char.historyAt])
+            local nxt = char.historyAt + 1
+            local live = LiveStepId()
+            local row = char.history[nxt]
+            if live and row and row.id == live then
+                char.historyAt = nil
+                char.manualStepId = nil
+                char.manualFrontierId = nil
+            else
+                char.historyAt = nxt
+                ReleaseSkip(char, row)
+            end
         else
             char.historyAt = nil
             char.manualStepId = nil
@@ -512,8 +671,19 @@ function Resume.Back()
         return
     end
     if not char.historyAt then
-        char.historyAt = #char.history
+        local at = #char.history
+        local live = LiveStepId()
+        if live and at > 0 and char.history[at].id == live then
+            at = at - 1
+        end
+        if at < 1 then
+            return
+        end
+        char.historyAt = at
     else
+        if char.historyAt <= 1 then
+            return
+        end
         char.historyAt = char.historyAt - 1
     end
     ReleaseSkip(char, char.history[char.historyAt])
@@ -794,6 +964,9 @@ function Resume.Status(step, log, measure)
         return "Ready"
     end
     if step.review then
+        if Resume.Done(step, log) then
+            return "Done"
+        end
         return "Review"
     end
     local char = QS.char

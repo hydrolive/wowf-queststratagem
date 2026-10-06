@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.10"
+QS.VERSION = "0.1.11"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -175,6 +175,7 @@ function QS:Rebuild()
         QS.Resume.Remember(QS.char, prevStep)
     end
     local index = QS.Resume.Choose(built.steps, log, QS.char)
+    local liveId = index and built.steps[index] and built.steps[index].id or nil
     if QS.char.historyAt and QS.char.history[QS.char.historyAt] then
         local snap = QS.Resume.Snapshot(QS.char.history[QS.char.historyAt])
         snap.review = true
@@ -196,6 +197,7 @@ function QS:Rebuild()
     QS.route = built
     QS.route.index = index
     QS.route.log = log
+    QS.route.liveId = liveId
     QS.route.stepId = index and built.steps[index] and built.steps[index].id or nil
     QS.char.routeKey = built.key
     QS.Bis.Annotate(built, id)

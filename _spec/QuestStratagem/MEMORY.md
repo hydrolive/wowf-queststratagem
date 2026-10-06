@@ -274,6 +274,12 @@ Options has a Clean Quest Log button. The line under the name is Removes X Quest
 
 Lua files for this pass were parsed as Lua 5.1. The stray-quest count was executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.11
+
+The yellow line is the place of the step on screen. Back and Next change it. A turn-in at Borstan reads Orgrimmar · Borstan while that step is showing. It does not keep the name Skywatcher Plateau · Muln Earthfury. Up to two earlier steps that are already finished follow that name, each with the ready-check icon. Reviewing a finished step puts the same icon on the step title and sets the status word to Done. The first Back leaves the live step instead of opening it again. Next still walks forward through the stored steps and returns to the live step without skipping it. A pickup at Muln stays its own step. It does not rename the step you are on.
+
+Lua files for this pass were parsed as Lua 5.1. The place line, the ready-check, and Back and Next were executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -320,3 +326,4 @@ Lua files for this pass were parsed as Lua 5.1. The stray-quest count was execut
 - 2026-10-05: No gear winner means the highest vendor price. A gear winner is equipped as its own objective. Completed objectives play a loot sound. Back reviews stored steps and hides when none exist. In-range quests at Muln Earthfury are picked up, not skipped. Flight paths and trainer skills are goals, not inn pins. Dual spec starts at level 40.
 - 2026-10-06: Horde leaving Mulgore for another zone flies from Tal in Thunder Bluff. 34.3, 25.8 is the Valanaar zeppelin, not a flight master.
 - 2026-10-06: Clean Quest Log abandons log quests the current route will not do. In-color quests the route names stay.
+- 2026-10-06: The yellow line follows the step on screen. Finished earlier steps show the ready-check icon. The first Back leaves the live step.

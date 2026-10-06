@@ -471,6 +471,7 @@ local function AreaStep(cluster, ids, tail, arrived, others)
         title = title,
         text = Describe(cluster, others, arrived),
         zone = cluster.zone,
+        placeName = place and place.placeName or nil,
         questIDs = ids,
         goalHeader = atHandin and "Turn in" or "Area",
         goals = AppendExtras(GoalsFor(cluster), cluster, others, arrived),
@@ -616,6 +617,7 @@ function Area.Apply(built, char, log)
             title = "Skywatcher Plateau",
             text = "Muln Earthfury still offers Defending the Dead and The Broodmother. Both are in range. The Broodmother is an elite at Gloomrise. Bring help. The pin is Muln. Gloomrise has no published coordinates.",
             zone = "Mulgore",
+            placeName = "Skywatcher Plateau",
             mapID = 1412,
             x = 0.334,
             y = 0.224,
@@ -643,9 +645,7 @@ function Area.Apply(built, char, log)
         table.insert(kept, 1, block[i])
     end
     built.steps = kept
-    if built.plateauLead and not onMuln and not plateauSkipped then
-        built.routeName = "Skywatcher Plateau · Muln Earthfury"
-    elseif place then
+    if place then
         built.routeName = (place.placeName or chosen.zone) .. " · " .. place.npc
     else
         built.routeName = chosen.zone

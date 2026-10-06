@@ -571,7 +571,11 @@ function UI:Refresh()
     self.dist:SetText(dist)
     if step then
         local pos = self:ClusterProgress()
-        self.stepTitle:SetText(pos .. ". " .. (step.title or "Step"))
+        local title = step.title or "Step"
+        if step.review and log and QS.Resume.Done(step, log) then
+            title = "|TInterface\\RaidFrame\\ReadyCheck-Ready:14|t " .. title
+        end
+        self.stepTitle:SetText(pos .. ". " .. title)
         self.body:SetText(step.text or "")
     else
         self.stepTitle:SetText("Route complete")
@@ -581,7 +585,7 @@ function UI:Refresh()
     self.status:SetText(QS.Resume.Status(step, log or { inLog = {}, completed = {} }, measure))
     self.lastLeg:SetText(QS.Clock.FormatLeg(QS.char and QS.char.lastLeg))
     self.goal:SetText(QS.Clock.Header())
-    self.route:SetText(route and route.routeName or "Stratagem")
+    self.route:SetText(QS.Resume.RouteLine(QS.char, step, log))
     local pos, count = self:ClusterProgress()
     if self:LayoutLevelBar() then
         local xp = UnitXP("player") or 0
@@ -884,6 +888,7 @@ function UI:Init()
     self.route:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -114)
     self.route:SetTextColor(RGB(QS.COLOR.gold))
     self.route:SetJustifyH("LEFT")
+    self.route:SetWordWrap(false)
     self.route:SetWidth(340)
 
     self.indexText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")

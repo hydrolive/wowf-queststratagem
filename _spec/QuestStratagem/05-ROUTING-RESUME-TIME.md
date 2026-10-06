@@ -101,8 +101,8 @@ Never point at an NPC for a quest in the completed set. If the only remaining st
 
 - The character stores the last 20 steps (`history`), including a step that auto-advanced because the quest left the log. The first rebuild after login does not invent a previous step. If Elder Knowledge, quest 95664, is already complete and the history is empty, one snapshot of the Bashana Runetotem turn-in is stored.
 - Next, while you are on the live step: mark the current step id skipped, remember it, and advance. An area step also skips the travel step for that same area. Does not abandon.
-- Back: show the previous stored step, even when that id is no longer in the built route. Status reads `Review`. The button is hidden when you are on the live step and the history is empty, or when you are already on the oldest stored step.
-- Next while reviewing walks toward the live step. It does not skip the quest you are actually on. The last Next in the history returns to that live step.
+- Back: show the previous stored step, even when that id is no longer in the built route. The first Back from the live step opens that previous step. It does not open the live step again. Status reads `Review`, or `Done` when that stored step is already finished. The yellow line is that step's place, and finished steps before it show the ready-check icon. The button is hidden when the only stored step is the live one, when history is empty, or when you are already on the oldest stored step.
+- Next while reviewing walks toward the live step. If the next stored step is the live one, Next returns to the live step instead of reviewing it. It does not skip the quest you are actually on. The last Next in the history returns to that live step.
 
 ## Clean Quest Log
 

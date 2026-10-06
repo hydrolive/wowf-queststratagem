@@ -1,4 +1,8 @@
 -- Stratagem changelog
+-- 0.1.11 (2026-10-06)
+-- The yellow line is the step on screen. Back and Next change it.
+-- A finished earlier step shows a ready-check. The first Back leaves
+-- the live step. Reviewing a finished step says Done.
 -- 0.1.10 (2026-10-06)
 -- Options has Clean Quest Log. The line under it is Removes X Quests,
 -- where X is the log quests this route will not do. One click abandons

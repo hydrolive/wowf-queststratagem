@@ -30,7 +30,7 @@ The current step is also a pin on the map. Use the Blizzard user waypoint when `
 Top block:
 
 - Window title: `Stratagem`.
-- Status word: `Ready`, `Walking`, `In range`, `Turn in`, `Area`, `Dungeon`, `Hearth`, `Talent`, `Train`, `Craft`, `Sell`, `Repair`, `Bank`, `Auction`, `Boss`, `Kills`, `Already done`, `BiS still missing`, `Review`.
+- Status word: `Ready`, `Walking`, `In range`, `Turn in`, `Area`, `Dungeon`, `Hearth`, `Talent`, `Train`, `Craft`, `Sell`, `Repair`, `Bank`, `Auction`, `Boss`, `Kills`, `Already done`, `BiS still missing`, `Review`, `Done`. `Done` is a stored step you are reviewing that is already finished.
 - Subline: `Last leg: 40 min · +1,076 XP` using the previous completed step’s duration and XP delta.
 - Right side, stacked: `Next` and `Back` as small red-brown buttons. Not Ask. Back is hidden when this character has no earlier step. Medium and Small hide it as well. `/qs back` still does nothing in that case.
 
@@ -38,7 +38,7 @@ Divider.
 
 Route row:
 
-- Yellow route name, e.g. `Skywatcher Plateau · Muln Earthfury`.
+- Yellow line names the step on screen, e.g. `Orgrimmar · Borstan` while that turn-in is showing. It changes with Back and Next. Up to two earlier steps that are already finished follow it, each prefixed with the ready-check icon. A travel step uses its title (`Fly to Orgrimmar`). The step title under the arrow gets the same icon when you are reviewing a finished step.
 - Right: the level percent (`50%`) while a level plan is showing, or `1/7` on the demo route. No Reroute button and no skip mark on this row.
 
 Segment bar: while a level plan exists, the slices are this level's XP. Gold width equals `UnitXP` / `UnitXPMax`. The remaining width is the quests, dungeon bosses, and kill chunks that finish the level. The first unfinished slice is bright. At most 16 slices. The route index is the percent (`50%`), so a character halfway from 27 to 28 shows a bar about half full. The demo route has no level plan and keeps the cluster bar: N segments for the current cluster, filled segments done, current segment bright.
