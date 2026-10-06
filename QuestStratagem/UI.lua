@@ -214,6 +214,67 @@ function UI:ClusterProgress()
     return pos, count
 end
 
+function UI:LayoutLevelBar()
+    local plan = QS.route and QS.route.levelPlan
+    if not plan or not QS.Level then
+        return false
+    end
+    local parts = QS.Level.Visual(plan)
+    if not parts or #parts < 1 then
+        return false
+    end
+    local bar = self.segments
+    if not bar or not bar.segs then
+        return false
+    end
+    local width = bar:GetWidth()
+    if not width or width < 20 then
+        width = 428
+    end
+    local total = 0
+    for i = 1, #parts do
+        total = total + (parts[i].xp or 0)
+    end
+    if total < 1 then
+        total = 1
+    end
+    local gap = 2
+    local gaps = (#parts - 1) * gap
+    if gaps < 0 then
+        gaps = 0
+    end
+    local usable = width - gaps
+    if usable < #parts then
+        usable = #parts
+    end
+    local x = 0
+    for i = 1, 16 do
+        local seg = bar.segs[i]
+        local part = parts[i]
+        if part and seg then
+            local segW = usable * ((part.xp or 0) / total)
+            if segW < 2 then
+                segW = 2
+            end
+            seg:Show()
+            seg:ClearAllPoints()
+            seg:SetSize(segW, bar:GetHeight() > 0 and bar:GetHeight() or 8)
+            seg:SetPoint("LEFT", bar, "LEFT", x, 0)
+            if part.filled and part.filled >= 1 then
+                seg:SetColorTexture(RGB(QS.COLOR.fill))
+            elseif i == 1 or (parts[i - 1] and parts[i - 1].filled and parts[i - 1].filled >= 1) then
+                seg:SetColorTexture(1, 0.92, 0.55, 1)
+            else
+                seg:SetColorTexture(RGB(QS.COLOR.empty))
+            end
+            x = x + segW + gap
+        elseif seg then
+            seg:Hide()
+        end
+    end
+    return true
+end
+
 function UI:LayoutSegments(pos, count)
     local bar = self.segments
     if count < 1 then
@@ -292,7 +353,18 @@ local function GoalText(step, log)
             rows[#rows + 1] = { name = step.text or "Objective", count = "" }
         end
     else
-        header = step.questName or step.title or ""
+        header = step.goalHeader or step.questName or step.title or ""
+        if step.goals and #step.goals > 0 then
+            for i = 1, #step.goals do
+                local g = step.goals[i]
+                local count = ""
+                if g.need and g.need > 0 then
+                    count = (g.have or 0) .. "/" .. g.need
+                end
+                rows[#rows + 1] = { name = g.name, count = count }
+            end
+            return header, rows
+        end
         if step.kind == "turnin" or step.kind == "hearth" or step.kind == "train" then
             rows[#rows + 1] = { name = (step.npc or "NPC") .. " · " .. (step.zone or ""), count = "" }
         elseif step.text then
@@ -306,6 +378,16 @@ function UI:PaintGoals(step, log)
     local header, rows = "", {}
     if step then
         header, rows = GoalText(step, log)
+        if step.extraGoals then
+            for i = 1, #step.extraGoals do
+                local g = step.extraGoals[i]
+                local count = ""
+                if g.need and g.need > 0 then
+                    count = (g.have or 0) .. "/" .. g.need
+                end
+                rows[#rows + 1] = { name = g.name, count = count }
+            end
+        end
     end
     local bis = (QS.route and QS.route.index and QS.route.bisRows and QS.route.bisRows[QS.route.index]) or {}
     for i = 1, #bis do
@@ -376,12 +458,22 @@ function UI:Refresh()
     self.goal:SetText(QS.Clock.Header())
     self.route:SetText(route and route.routeName or "QuestStratagem")
     local pos, count = self:ClusterProgress()
-    if count > 0 then
+    if self:LayoutLevelBar() then
+        local xp = UnitXP("player") or 0
+        local xpMax = UnitXPMax("player") or 0
+        local pct = 0
+        if xpMax > 0 then
+            pct = math.floor((xp / xpMax) * 100 + 0.5)
+        end
+        self.indexText:SetText(pct .. "%")
+        self.lastXp = xp
+    elseif count > 0 then
         self.indexText:SetText(pos .. "/" .. count)
+        self:LayoutSegments(pos, count)
     else
         self.indexText:SetText("—")
+        self:LayoutSegments(pos, count)
     end
-    self:LayoutSegments(pos, count)
     local warn = route and route.warning
     if warn and QS.char.size == "large" then
         self.warning:SetText(warn)
@@ -413,9 +505,33 @@ function UI:OnTick()
         self.status:SetText(QS.Resume.Status(step, log, measure))
     end
     local sec = math.floor((QS.char and QS.char.totalSeconds) or 0)
-    if self.goal and sec ~= self.lastSec then
+    local xp = UnitXP("player") or 0
+    if self.goal and (sec ~= self.lastSec or xp ~= self.lastXp) then
         self.lastSec = sec
+        self.lastXp = xp
         self.goal:SetText(QS.Clock.Header())
+        if QS.route and QS.route.levelPlan then
+            self:LayoutLevelBar()
+            local xpMax = UnitXPMax("player") or 0
+            local pct = 0
+            if xpMax > 0 then
+                pct = math.floor((xp / xpMax) * 100 + 0.5)
+            end
+            self.indexText:SetText(pct .. "%")
+            if step and step.kind == "kills" and step.goals and step.goals[1] then
+                local gained = xp - (step.xpStart or 0)
+                if gained < 0 then
+                    gained = 0
+                end
+                local have = math.floor(gained / (step.xpPerKill or 1))
+                local need = step.goals[1].need or 0
+                if have > need then
+                    have = need
+                end
+                step.goals[1].have = have
+                self:PaintGoals(step, route and route.log)
+            end
+        end
     end
 end
 
@@ -594,11 +710,19 @@ function UI:Init()
     self.goalHit:EnableMouse(true)
     self.goalHit:SetScript("OnEnter", function(hit)
         local route = QS.route
-        local seconds = QS.Clock.RemainingSeconds(route and route.steps, route and route.index, route and route.log)
+        local plan = route and route.levelPlan
         GameTooltip:SetOwner(hit, "ANCHOR_RIGHT")
-        GameTooltip:SetText("Time on the authored steps", 1, 0.82, 0)
-        GameTooltip:AddLine("About " .. QS.Clock.FormatTracked(seconds) .. " left at this pace.", 0.9, 0.88, 0.83, true)
-        GameTooltip:AddLine("Tracked is addon time, not /played.", 0.66, 0.63, 0.56, true)
+        if plan and QS.Level then
+            local seconds = QS.Level.RemainingSeconds(plan)
+            GameTooltip:SetText("Time to the next level", 1, 0.82, 0)
+            GameTooltip:AddLine("About " .. QS.Clock.FormatTracked(seconds) .. " for the segments still open on this bar.", 0.9, 0.88, 0.83, true)
+            GameTooltip:AddLine("Quests, one dungeon, and same-level kills. A guess, scaled by class and pace.", 0.66, 0.63, 0.56, true)
+        else
+            local seconds = QS.Clock.RemainingSeconds(route and route.steps, route and route.index, route and route.log)
+            GameTooltip:SetText("Time on the authored steps", 1, 0.82, 0)
+            GameTooltip:AddLine("About " .. QS.Clock.FormatTracked(seconds) .. " left at this pace.", 0.9, 0.88, 0.83, true)
+            GameTooltip:AddLine("Tracked is addon time, not /played.", 0.66, 0.63, 0.56, true)
+        end
         GameTooltip:Show()
     end)
     self.goalHit:SetScript("OnLeave", function()

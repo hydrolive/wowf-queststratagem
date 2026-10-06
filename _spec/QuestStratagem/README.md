@@ -2,7 +2,7 @@
 
 Offline 1–60 stratagem addon for WoW Forever. Arrow, distance, chains, resume, BiS. No AI.
 
-Planning pack dated 2026-10-05. The addon is not generated in this pass. Grok Build consumes the prompt.
+Planning pack dated 2026-10-05. The addon source is `QuestStratagem/` at version 0.1.2. What is designed, what is shipped, and what is left are in `MEMORY.md` under Live guide, Level plan, Implemented in 0.1.1, Implemented in 0.1.2, and Still todo.
 
 ## Read first
 
@@ -17,11 +17,11 @@ Planning pack dated 2026-10-05. The addon is not generated in this pass. Grok Bu
 | `02-UI-SPEC.md` | Large / medium / small, matching the three screenshots |
 | `03-ARCHITECTURE.md` | TOC, modules, saved vars, slash |
 | `04-DATA-MODEL.md` | Step schema, race/class matrix, overlays |
-| `05-ROUTING-RESUME-TIME.md` | Precursors, clusters, resume, 72h goal |
+| `05-ROUTING-RESUME-TIME.md` | Precursors, clusters, resume, time to next level |
 | `06-BIS-DUNGEONS.md` | Spec loot rows, dungeon windows |
 | `07-API-CONSTRAINTS.md` | Classic-lineage probes |
 | `08-UPDATE-LOOP.md` | How to patch data after a Forever build |
-| `09-PHASES.md` | A shell, B to 20, C to 60, D overlay |
+| `09-PHASES.md` | A shell (shipped), B to 20, C to 60, D overlay, E town and professions |
 
 ## Reference
 
@@ -33,4 +33,4 @@ WoW Forever facts used here: cap 60 permanent, launch 4 Nov 2026, 1,000+ new que
 
 ## Next action
 
-Paste `01-ULTIMATE-BUILD-PROMPT.md` into Grok Build for Phase A. After each beta patch, follow `08-UPDATE-LOOP.md` and append the decision log in `MEMORY.md`.
+Read `MEMORY.md` before the next session. Phase A is shipped. Phase E (hearth, talents, professions, bosses) is started in 0.1.1. The level plan is in 0.1.2. Remaining work is Still todo. After each beta patch, follow `08-UPDATE-LOOP.md`.

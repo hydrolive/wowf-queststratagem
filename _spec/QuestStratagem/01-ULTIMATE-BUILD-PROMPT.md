@@ -10,13 +10,13 @@ Visual reference is the Bones panel (three sizes: full info, title+distance+bar,
 
 Behavior:
 
-- Next action is pick up (zone + NPC name), objective, turn in, travel, train, fly, hearth, or dungeon entrance. Distance in yards and a bearing word (`ahead`, `left`, `behind`, …).
+- Next action is pick up (zone + NPC name), objective, turn in, travel, train, fly, set or use hearth, a talent point, a profession trainer with the spells for that rank, a craft when the materials are in the bags, sell or repair, bank, auction, a dungeon entrance, or a named boss kill. Distance in yards and a bearing word (`ahead`, `left`, `behind`, …). Gather lines such as `Gather Peacebloom 0/20` sit on quest steps and do not replace them. Boss kills are not quests and not BiS checks. Full rules: MEMORY.md product rules 2, 8, and 13.
 - Aware of faction, race, class, and confirmed spec. Auto-detect faction, race, and class. Spec is a config confirm; guess from talent points but do not switch silently after confirm.
 - Quest chains with precursor injection and hub clustering, per `05-ROUTING-RESUME-TIME.md`. If a later step needs a quest, schedule that quest before leaving the hub.
 - On load, resume from the quest log and completed flags. Never point at a quest already turned in. Off-route accepted quests get pulled forward only if they sit in the next clusters.
 - Next and Back skip or rewind a step and remember the skip. Accept, objective complete, and turn-in auto-advance.
-- Dungeon steps only for quest XP or BiS, not mob grind. Pickup, then arrow to the entrance, then a goals block naming the BiS drop or reward. See `06-BIS-DUNGEONS.md`.
-- Header goal vs tracked time. Default goal 72h to 60 times class and pace modifiers. Tracked time is addon time, labeled Tracked, not /played.
+- Dungeon quest and BiS steps follow `06-BIS-DUNGEONS.md`. Also insert one step per boss in the kill order, with the boss name as the goal. Do not invent interior coordinates. Do not treat that kill as a quest or a BiS requirement.
+- Header on a real route: time to the next level, plus `UnitXP` / `UnitXPMax`. The 72h-to-60 figure is only the pace basis and the demo header. Tracked time is addon time, labeled Tracked, not /played. Grey quests are skipped. A level with no authored quest uses one in-band dungeon and kill steps, and says the quest ids are missing.
 
 Data:
 

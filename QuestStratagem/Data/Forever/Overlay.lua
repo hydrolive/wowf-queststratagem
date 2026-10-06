@@ -1,11 +1,21 @@
 -- QuestStratagem changelog
+-- 0.1.2 (2026-10-05)
+-- Grey quests drop out. The header estimates time to the next level.
+-- The bar matches this level's XP. A level with no authored quest keeps
+-- one dungeon and kill steps, and says those quest ids are not in the guide.
+-- 0.1.1 (2026-10-05)
+-- Live steps: set hearth at a new hub, hearth back for turn-ins, talent point,
+-- profession trainer and craft reminder, gather sub-goals, sell/repair,
+-- bank and auction lists in cities, dungeon boss kills.
+-- Classic dungeon windows now insert from the boss list even when quest ids
+-- are empty. Interior boss pins are not in this build. The step names the boss.
 -- 0.1.0 (2026-10-05)
 -- Phase A shell: large / medium / small, arrow, config, resume, clock.
 -- Classic starter data: Human Elwynn and Orc/Troll Durotar through about level 6.
 -- Other races exist as keys. Their bodies point at the nearest authored spine.
 -- Skyborne routes are Zephras Isle text steps. No invented Forever quest ids.
--- Dungeon windows and pre-raid BiS tables are present; dungeon quest ids are not,
--- so those windows do not insert.
+-- Dungeon windows and pre-raid BiS tables are present. Quest id lists were empty,
+-- so 0.1.0 did not insert those windows. 0.1.1 inserts them for the boss order.
 -- Data classic-1.12 + forever-2026-10-05. The 1-60 route is not complete.
 
 QuestStratagem = QuestStratagem or {}

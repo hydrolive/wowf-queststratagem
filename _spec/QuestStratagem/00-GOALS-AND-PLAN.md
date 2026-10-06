@@ -21,7 +21,8 @@ This folder is the done state of the planning request. Grok Build (or a later Gr
 - Turning it in advances off the “turn in” step.
 - Next skips a step and Back returns to it. Skip is remembered.
 - Barrens-style cluster: if three quests share a camp, the route accepts all three before the first grind loop.
-- At a dungeon window, the step names the entrance, the quests to hold, and any BiS drop or reward.
+- At a dungeon window, the step names the entrance, the quests to hold when those quest ids exist, each boss as its own kill step, and any BiS drop or reward.
+- At a new hub the step sets the hearth. When turn-ins are back in that town, the step says to hearth. A new talent point names the talent. A city points at the profession trainer and lists the spells. Bags list what to sell, bank, or auction. A craft step appears when the materials are already in the bags, and quest steps carry a gather line for the player's gathering skill.
 - Goals block on the large window shows objective counts and, when relevant, “BiS: item name — choose this reward / loot this boss.”
 - Header shows goal hours vs actual hours, and last segment time plus XP.
 - No network permission, no chat frame, no model call.
@@ -57,4 +58,4 @@ This folder is the done state of the planning request. Grok Build (or a later Gr
 
 ## Estimate policy
 
-Default goal: 72:00 to 60 for a guide-following damage spec, modifiers in `05-ROUTING-RESUME-TIME.md`. Display as “Goal 72h · Actual 6h 12m · Level 14”. Do not hide the actual if the player is slower.
+The pace basis is still 72:00 to 60 for a guide-following damage spec, modifiers in `05-ROUTING-RESUME-TIME.md`. On a real route the header is time to the next level plus this level's XP, for example `L28 in 42m · 12,400/24,800`. The demo route, which has no level plan, still shows the 72h goal line.

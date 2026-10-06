@@ -91,7 +91,71 @@ function Resume.Done(step, log)
     if not step or not log then
         return false
     end
+    if step.levelDefer then
+        return true
+    end
+    if QS.Level and QS.Level.IsGrey(step) then
+        return true
+    end
     local kind = step.kind
+    if kind == "kills" then
+        local level = UnitLevel("player") or 1
+        if level > (step.atLevel or level) then
+            return true
+        end
+        local xp = UnitXP("player") or 0
+        if step.xpMark and level == step.atLevel and xp >= step.xpMark then
+            return true
+        end
+        return false
+    end
+    if kind == "hearth" and not step.questID then
+        local place = QS.Api.Place()
+        if step.hearthUse then
+            return place.zone == step.zone or place.real == step.zone or place.sub == step.bind
+        end
+        return QS.Api.BindLocation() == step.bind
+    end
+    if kind == "talent" then
+        local unspent = QS.Api.UnspentTalents() or 0
+        if step.unspentAt and unspent < step.unspentAt then
+            return true
+        end
+        local rank = step.talentName and QS.Api.TalentRank(step.talentName)
+        if rank and step.talentRank and rank >= step.talentRank then
+            return true
+        end
+        return false
+    end
+    if kind == "vendor" then
+        if step.wantSell and QS.Api.FreeSlots() <= 3 then
+            return false
+        end
+        if step.wantRepair and QS.Api.DurabilityRatio() < 0.25 then
+            return false
+        end
+        return true
+    end
+    if kind == "boss" then
+        return QS.char and QS.char.bossDown and step.boss and QS.char.bossDown[step.boss] and true or false
+    end
+    if kind == "craft" then
+        if step.product and QS.Api.ItemCount(step.product) > (step.productAt or 0) then
+            return true
+        end
+        local skill = QS.Api.Skill(step.profession)
+        if skill and step.rankAt and skill.rank > step.rankAt then
+            return true
+        end
+        return false
+    end
+    if kind == "proftrain" then
+        local skill = QS.Api.Skill(step.profession)
+        if skill and step.maxAt and skill.max > step.maxAt then
+            return true
+        end
+        return false
+    end
     if kind == "accept" then
         if step.questIDs then
             return AllLoggedOrDone(log, step.questIDs)
@@ -157,6 +221,12 @@ function Resume.Choose(steps, log, char)
             char.manualStepId = nil
             char.manualFrontierId = nil
         else
+            local held = steps[mi]
+            if held.levelDefer or (QS.Level and QS.Level.IsGrey(held)) then
+                char.manualStepId = nil
+                char.manualFrontierId = nil
+                return frontier
+            end
             local old = Find(steps, char.manualFrontierId)
             if frontier and old and frontier > old and frontier > mi then
                 char.manualStepId = nil
@@ -325,6 +395,33 @@ function Resume.Status(step, log, measure)
     local char = QS.char
     if char and char.manualStepId == step.id and Resume.Done(step, log) then
         return "Already done"
+    end
+    if step.kind == "boss" then
+        return "Boss"
+    end
+    if step.kind == "kills" then
+        return "Kills"
+    end
+    if step.kind == "talent" then
+        return "Talent"
+    end
+    if step.kind == "vendor" then
+        return step.wantRepair and step.wantSell and "Sell" or (step.wantRepair and "Repair" or "Sell")
+    end
+    if step.kind == "craft" then
+        return "Craft"
+    end
+    if step.kind == "proftrain" then
+        return "Train"
+    end
+    if step.kind == "bank" then
+        return "Bank"
+    end
+    if step.kind == "auction" then
+        return "Auction"
+    end
+    if step.kind == "hearth" then
+        return "Hearth"
     end
     if step.kind == "dungeon" then
         if step.bisRequired and step.bisItemID and not QS.Bis.PlayerHas(step.bisItemID) then

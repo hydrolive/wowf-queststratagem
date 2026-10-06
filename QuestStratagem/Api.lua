@@ -27,7 +27,9 @@ function Api.Probe()
         add("C_QuestLog.IsComplete", Has(C_QuestLog.IsComplete))
     end
     add("GetQuestsCompleted", Has(GetQuestsCompleted))
+    add("QueryQuestsCompleted", Has(QueryQuestsCompleted))
     add("IsQuestFlaggedCompleted", Has(IsQuestFlaggedCompleted))
+    add("GetQuestGreenRange", Has(GetQuestGreenRange))
     add("C_Map", type(C_Map) == "table")
     if type(C_Map) == "table" then
         add("C_Map.GetBestMapForUnit", Has(C_Map.GetBestMapForUnit))
@@ -54,8 +56,232 @@ function Api.Probe()
         hbd = ok and LibStub("HereBeDragons-2.0", true) ~= nil
     end
     add("HereBeDragons-2.0", hbd)
+    add("GetBindLocation", Has(GetBindLocation))
+    add("GetItemCooldown", Has(GetItemCooldown))
+    add("GetNumSkillLines", Has(GetNumSkillLines))
+    add("GetSkillLineInfo", Has(GetSkillLineInfo))
+    add("GetProfessions", Has(GetProfessions))
+    add("GetNumTalents", Has(GetNumTalents))
+    add("GetTalentInfo", Has(GetTalentInfo))
+    add("GetInventoryItemDurability", Has(GetInventoryItemDurability))
+    add("C_Container", type(C_Container) == "table")
+    add("GetContainerNumSlots", Has(GetContainerNumSlots))
+    add("bind", Api.BindLocation())
+    add("freeSlots", Api.FreeSlots())
+    local skills = Api.Skills()
+    for i = 1, #skills do
+        add("skill " .. skills[i].name, skills[i].rank .. "/" .. tostring(skills[i].max))
+    end
     add("data", QS.DATA_VERSION)
     return lines
+end
+
+function Api.Place()
+    return {
+        zone = GetZoneText and GetZoneText() or "",
+        real = GetRealZoneText and GetRealZoneText() or "",
+        sub = GetSubZoneText and GetSubZoneText() or "",
+    }
+end
+
+function Api.BindLocation()
+    if not GetBindLocation then
+        return ""
+    end
+    return GetBindLocation() or ""
+end
+
+function Api.HearthCooldown()
+    if not GetItemCooldown then
+        return 0
+    end
+    local start, duration = GetItemCooldown(6948)
+    if not start or not duration or start == 0 or duration == 0 then
+        return 0
+    end
+    local remain = math.floor(start + duration - GetTime())
+    if remain < 0 then
+        return 0
+    end
+    return remain
+end
+
+function Api.UnspentTalents()
+    if UnitCharacterPoints then
+        local a = UnitCharacterPoints("player")
+        if type(a) == "number" then
+            return a
+        end
+    end
+    if GetUnspentTalentPoints then
+        return GetUnspentTalentPoints() or 0
+    end
+    return 0
+end
+
+function Api.TalentState(name)
+    if not name or not GetNumTalents or not GetTalentInfo then
+        return nil
+    end
+    for tab = 1, 3 do
+        local n = GetNumTalents(tab) or 0
+        for i = 1, n do
+            local tname, _, _, _, rank, _, _, available = GetTalentInfo(tab, i)
+            if tname == name then
+                return rank or 0, available and true or false
+            end
+        end
+    end
+    return nil
+end
+
+function Api.TalentRank(name)
+    local rank = Api.TalentState(name)
+    return rank
+end
+
+function Api.Skills()
+    local out = {}
+    local seen = {}
+    if GetProfessions and GetProfessionInfo then
+        local ids = { GetProfessions() }
+        for i = 1, #ids do
+            local idx = ids[i]
+            if idx then
+                local name, _, rank, maxRank = GetProfessionInfo(idx)
+                if name and not seen[name] then
+                    seen[name] = true
+                    out[#out + 1] = { name = name, rank = rank or 0, max = maxRank or 0 }
+                end
+            end
+        end
+    end
+    if GetNumSkillLines and GetSkillLineInfo then
+        local n = GetNumSkillLines() or 0
+        for i = 1, n do
+            local name, header, _, rank, _, _, maxRank = GetSkillLineInfo(i)
+            if name and not header and not seen[name] and rank and maxRank and maxRank > 0 then
+                seen[name] = true
+                out[#out + 1] = { name = name, rank = rank, max = maxRank }
+            end
+        end
+    end
+    return out
+end
+
+function Api.Skill(name)
+    local skills = Api.Skills()
+    for i = 1, #skills do
+        if skills[i].name == name then
+            return skills[i]
+        end
+    end
+    return nil
+end
+
+local function BagSize(bag)
+    if C_Container and C_Container.GetContainerNumSlots then
+        return C_Container.GetContainerNumSlots(bag) or 0
+    end
+    if GetContainerNumSlots then
+        return GetContainerNumSlots(bag) or 0
+    end
+    return 0
+end
+
+local function BagSlot(bag, slot)
+    if C_Container and C_Container.GetContainerItemInfo then
+        local info, count, _, _, _, _, link = C_Container.GetContainerItemInfo(bag, slot)
+        if type(info) == "table" then
+            return info.itemID, info.stackCount or info.stack or 1, info.isBound, info.hyperlink
+        end
+        if type(link) == "string" then
+            return tonumber(link:match("item:(%d+)")), count or 1, nil, link
+        end
+    end
+    if GetContainerItemInfo then
+        local _, count, _, _, _, _, link = GetContainerItemInfo(bag, slot)
+        if link then
+            local id = link:match("item:(%d+)")
+            return tonumber(id), count or 1, nil, link
+        end
+    end
+    return nil
+end
+
+function Api.Bags()
+    local free = 0
+    local byId = {}
+    local list = {}
+    for bag = 0, 4 do
+        local slots = BagSize(bag)
+        for slot = 1, slots do
+            local itemID, count, bound, link = BagSlot(bag, slot)
+            if not itemID then
+                free = free + 1
+            else
+                local name, _, quality, _, _, class, subclass = GetItemInfo(itemID)
+                if not name and link then
+                    name, _, quality, _, _, class, subclass = GetItemInfo(link)
+                end
+                if name then
+                    local row = byId[itemID]
+                    if not row then
+                        row = {
+                            id = itemID,
+                            name = name,
+                            quality = quality or 1,
+                            count = 0,
+                            class = class,
+                            subclass = subclass,
+                            bound = bound,
+                        }
+                        byId[itemID] = row
+                        list[#list + 1] = row
+                    end
+                    row.count = row.count + (count or 1)
+                    if bound then
+                        row.bound = true
+                    end
+                end
+            end
+        end
+    end
+    return { free = free, byId = byId, list = list }
+end
+
+function Api.FreeSlots()
+    return Api.Bags().free
+end
+
+function Api.ItemCount(itemID)
+    if not itemID then
+        return 0
+    end
+    if GetItemCount then
+        return GetItemCount(itemID) or 0
+    end
+    local bags = Api.Bags()
+    local row = bags.byId[itemID]
+    return row and row.count or 0
+end
+
+function Api.DurabilityRatio()
+    if not GetInventoryItemDurability then
+        return 1
+    end
+    local cur, max = 0, 0
+    for slot = 1, 18 do
+        local c, m = GetInventoryItemDurability(slot)
+        if c and m and m > 0 then
+            cur = cur + c
+            max = max + m
+        end
+    end
+    if max == 0 then
+        return 1
+    end
+    return cur / max
 end
 
 function Api.LogCount()
@@ -168,6 +394,12 @@ function Api.IsFlagged(questID)
         end
     end
     return nil
+end
+
+function Api.QueryCompleted()
+    if QueryQuestsCompleted then
+        pcall(QueryQuestsCompleted)
+    end
 end
 
 function Api.ReadCompleted(turnedIn)

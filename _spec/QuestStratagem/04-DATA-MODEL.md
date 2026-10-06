@@ -28,7 +28,8 @@ Spec does not fork the zone path unless `specFork = true` on a step (warlock dem
   id = "A-human-elwynn-0042",   -- stable string
   cluster = "elwynn-goldshire", -- pull siblings before leaving
   order = 42,                   -- author order inside the spine
-  kind = "accept",              -- accept | objective | turnin | travel | train | hearth | fly | dungeon | note
+  kind = "accept",              -- accept | objective | turnin | travel | train | hearth | fly | dungeon | note | kills | boss | talent | vendor | craft | proftrain | bank | auction
+                                -- live-only: boss | talent | vendor | craft | proftrain | bank | auction
   title = "Kobold Candles",
   text = "Northshire, the mine; kill kobolds for candles.",
   zone = "Elwynn Forest",
@@ -61,6 +62,19 @@ Spec does not fork the zone path unless `specFork = true` on a step (warlock dem
 ```
 
 `questID = 0` is forbidden. Unknown Forever quests use `questID = nil`, `confidence = "stub"`, and a text step. Resume cannot auto-complete a stub from the log; the player uses Next.
+
+Live steps (hearth without a quest id, talent, vendor, craft, proftrain, bank, auction, boss) are built in `Live.lua` at refresh time. Do not copy them into the race files. Fields they use:
+
+- `extraGoals` — gather lines appended after quest goals. Shape `{ name = "Gather Peacebloom", have = 0, need = 20 }`. They do not finish the step.
+- `goalHeader` — yellow goals title when the step is not an accept or an objective.
+- `goals` — same row shape. A trainer spell omits `need`, so the count cell stays empty.
+- `hearthUse` — this hearth step means travel to the bind, not set a new one. `bind` is the `GetBindLocation()` string.
+- `boss` — display name. Kill credit keys `bossDown` by this string. No `x`/`y` until a real interior pin exists.
+- `talentName`, `talentRank`, `unspentAt`
+- `profession`, `product` (omit when the craft has no item, never 0), `productAt`, `rankAt`, `maxAt`
+- `wantSell`, `wantRepair`
+
+A quest hearth such as 2158 still uses `kind = "hearth"` plus `questID`. That step completes only when the quest is turned in. The no-quest hearth completes from bind location or arrival. Full behavior is in MEMORY.md under "Live guide".
 
 ## Chain rules
 

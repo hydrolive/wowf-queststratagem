@@ -10,7 +10,11 @@ Copy patterns:
 - `BiS weapon: Ironfoe — drop, Emperor Thaurissan, BRD`
 - `BiS chest: Robe of the Archmage — crafted, not this quest`
 
-If the item is a drop, the dungeon step does not complete on quest turn-in alone when `bisRequired` is set. It completes on turn-in plus (item in bags or equipped or Next). Loot cannot be forced. Status becomes `BiS still missing · Next to leave`.
+If the item is a drop, the dungeon step does not complete on quest turn-in alone when `bisRequired` is set. It completes on turn-in plus (item in bags or equipped or Next). Loot cannot be forced. Status becomes `BiS still missing`.
+
+Boss kill steps are a different record. Kind `boss`, goal text is the boss name, and `bisRequired` is not set. Walking past Rhahk'Zor is not a BiS check. BiS rows still attach to the quest or the drop that actually awards the item. Do not merge those two ideas.
+
+Talent point advice is also not a BiS row. The leveling order in `Data/Services.lua` is a reported Classic spend, one name per point, for the trees listed under "Spec trees to cover". Class-colliding keys are Paladin Protection, Priest Holy, Shaman Restoration, and Druid Restoration. Treat the orders as reported until someone cites a Forever guide.
 
 ## Tables
 

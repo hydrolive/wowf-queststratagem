@@ -189,6 +189,9 @@ end
 
 function Arrow.DistanceText(measure, step)
     if measure.mode == "instance" then
+        if step and step.boss then
+            return "Inside · " .. step.boss
+        end
         return "Inside · follow BiS / quest"
     end
     if measure.mode ~= "ok" then

@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.0"
+QS.VERSION = "0.1.2"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -38,7 +38,9 @@ local CHAR_DEFAULTS = {
     dungeonDetours = true,
     bisCallouts = true,
     classQuests = true,
-    professionSteps = false,
+    professionSteps = true,
+    bossDown = {},
+    talentUnspent = nil,
     includeStubs = false,
     routeKey = nil,
     demo = false,
@@ -83,6 +85,9 @@ function QS:Print(msg)
 end
 
 function QS:InitDB()
+    -- Phase A saved professionSteps = false before the field existed as a
+    -- default. Read the revision before FillDefaults, which would stamp it.
+    local hadRev = QuestStratagemCharDB and QuestStratagemCharDB.liveRev
     QuestStratagemDB = FillDefaults(QuestStratagemDB or {}, GLOBAL_DEFAULTS)
     QuestStratagemCharDB = FillDefaults(QuestStratagemCharDB or {}, CHAR_DEFAULTS)
     if type(QuestStratagemCharDB.skips) ~= "table" then
@@ -90,6 +95,13 @@ function QS:InitDB()
     end
     if type(QuestStratagemCharDB.turnedIn) ~= "table" then
         QuestStratagemCharDB.turnedIn = {}
+    end
+    if type(QuestStratagemCharDB.bossDown) ~= "table" then
+        QuestStratagemCharDB.bossDown = {}
+    end
+    if not hadRev then
+        QuestStratagemCharDB.professionSteps = true
+        QuestStratagemCharDB.liveRev = 1
     end
     QS.db = QuestStratagemDB
     QS.char = QuestStratagemCharDB
@@ -112,6 +124,12 @@ function QS:Rebuild()
     local built = QS.Router.Build(id, QS.char)
     local log = QS.Api.Snapshot()
     QS.Resume.PullForward(built.steps, log, QS.char.skips)
+    if QS.Level and QS.Level.Apply then
+        QS.Level.Apply(built, QS.char, log)
+    end
+    if QS.Live and QS.Live.Apply then
+        QS.Live.Apply(built, id, QS.char, log)
+    end
     local index = QS.Resume.Choose(built.steps, log, QS.char)
     local prevId = QS.route and QS.route.stepId
     QS.route = built
@@ -166,6 +184,9 @@ function QS:OnEvent(event, arg1, arg2)
     if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
         QS.loggedIn = true
         QS.Config.GuessSpec(false)
+        if QS.Api.QueryCompleted then
+            QS.Api.QueryCompleted()
+        end
         QS:RequestRebuild()
         if QS.UI then
             QS.UI:ApplyShown()
@@ -200,17 +221,33 @@ function QS:OnEvent(event, arg1, arg2)
         QS:RequestRebuild()
         return
     end
-    if event == "ZONE_CHANGED_NEW_AREA" then
-        if QS.UI then
-            QS.UI:Refresh(false)
+    if event == "ZONE_CHANGED_NEW_AREA" or event == "ZONE_CHANGED" or event == "ZONE_CHANGED_INDOORS" then
+        QS:RequestRebuild()
+        return
+    end
+    if event == "CHARACTER_POINTS_CHANGED" or event == "PLAYER_TALENT_UPDATE" then
+        QS.Config.GuessSpec(false)
+        QS:RequestRebuild()
+        return
+    end
+    if event == "BAG_UPDATE" or event == "SKILL_LINES_CHANGED" or event == "UPDATE_INVENTORY_DURABILITY" or event == "MERCHANT_CLOSED" or event == "BANKFRAME_CLOSED" or event == "AUCTION_HOUSE_CLOSED" or event == "TRAINER_CLOSED" or event == "GOSSIP_CLOSED" then
+        QS:RequestRebuild()
+        return
+    end
+    if event == "CHAT_MSG_COMBAT_HOSTILE_DEATH" then
+        local text = arg1
+        local name
+        if type(text) == "string" then
+            name = text:match("^(.+) dies%.$") or text:match("slain ([^!]+)!")
+        end
+        if name and QS.Services and QS.Services.bossNames and QS.Services.bossNames[name] and QS.char then
+            QS.char.bossDown[name] = true
+            QS:RequestRebuild()
         end
         return
     end
-    if event == "CHARACTER_POINTS_CHANGED" then
-        QS.Config.GuessSpec(false)
-        if QS.UI then
-            QS.UI:Refresh(false)
-        end
+    if event == "QUEST_QUERY_COMPLETE" then
+        QS:RequestRebuild()
         return
     end
     if event == "PLAYER_XP_UPDATE" then
@@ -287,6 +324,15 @@ frame:SetScript("OnUpdate", function(self, elapsed)
     if QS.UI and QS.char and QS.char.shown then
         QS.UI:OnTick()
     end
+    self.liveAcc = (self.liveAcc or 0) + dt
+    if self.liveAcc >= 2 and QS.route and QS.route.index and QS.char then
+        self.liveAcc = 0
+        local step = QS.route.steps[QS.route.index]
+        local live = step and (step.kind == "boss" or step.kind == "kills" or string.sub(step.id or "", 1, 4) == "dyn-")
+        if live and QS.Resume.Done(step, QS.route.log or QS.Api.Snapshot()) then
+            QS:RequestRebuild()
+        end
+    end
 end)
 
 SafeRegister(frame, "ADDON_LOADED")
@@ -300,8 +346,21 @@ SafeRegister(frame, "QUEST_TURNED_IN")
 SafeRegister(frame, "QUEST_FINISHED")
 SafeRegister(frame, "QUEST_LOG_UPDATE")
 SafeRegister(frame, "QUEST_REMOVED")
+SafeRegister(frame, "QUEST_QUERY_COMPLETE")
 SafeRegister(frame, "ZONE_CHANGED_NEW_AREA")
+SafeRegister(frame, "ZONE_CHANGED")
+SafeRegister(frame, "ZONE_CHANGED_INDOORS")
 SafeRegister(frame, "CHARACTER_POINTS_CHANGED")
+SafeRegister(frame, "PLAYER_TALENT_UPDATE")
+SafeRegister(frame, "BAG_UPDATE")
+SafeRegister(frame, "SKILL_LINES_CHANGED")
+SafeRegister(frame, "UPDATE_INVENTORY_DURABILITY")
+SafeRegister(frame, "MERCHANT_CLOSED")
+SafeRegister(frame, "BANKFRAME_CLOSED")
+SafeRegister(frame, "AUCTION_HOUSE_CLOSED")
+SafeRegister(frame, "TRAINER_CLOSED")
+SafeRegister(frame, "GOSSIP_CLOSED")
+SafeRegister(frame, "CHAT_MSG_COMBAT_HOSTILE_DEATH")
 
 SLASH_QUESTSTRATAGEM1 = "/qs"
 SlashCmdList["QUESTSTRATAGEM"] = function(msg)

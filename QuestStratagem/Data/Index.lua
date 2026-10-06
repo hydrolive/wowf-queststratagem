@@ -32,8 +32,8 @@ Cover("Horde", "Tauren", { "Warrior", "Hunter", "Shaman", "Druid" })
 Cover("Horde", "Troll", { "Warrior", "Hunter", "Rogue", "Priest", "Shaman", "Mage", "Warlock" })
 Cover("Horde", "Windshaper", { "Warrior", "Hunter", "Rogue", "Druid", "Shaman" })
 
--- Entrance pins are Classic. Quest id lists stay empty until cited, so the
--- router will not insert a dungeon window from this table yet.
+-- Entrance pins are reported Classic coordinates. Quest lists stay empty
+-- until cited. Boss kill steps still insert when the level band matches.
 local function Dungeon(row)
     row.source = row.source or "wowhead-classic"
     row.confidence = row.confidence or "reported"

@@ -133,11 +133,24 @@ end
 
 function Clock.Header()
     local char = QS.char
-    local goal = Clock.FormatHours(Clock.GoalSeconds())
-    local tracked = Clock.FormatTracked(char and char.totalSeconds or 0)
     local level = UnitLevel("player") or 1
+    local xp = UnitXP("player") or 0
+    local xpMax = UnitXPMax("player") or 0
+    local plan = QS.route and QS.route.levelPlan
     local spec, confirmed = QS.Config.ActiveSpec()
-    local line = string.format("Goal %s · Tracked %s · L%d", goal, tracked, level)
+    local line
+    if plan and QS.Level and xpMax > 0 then
+        if level >= 60 then
+            line = string.format("L60 · %s/%s", Clock.Comma(xp), Clock.Comma(xpMax))
+        else
+            local eta = Clock.FormatTracked(QS.Level.RemainingSeconds(plan))
+            line = string.format("L%d in %s · %s/%s", level + 1, eta, Clock.Comma(xp), Clock.Comma(xpMax))
+        end
+    else
+        local goal = Clock.FormatHours(Clock.GoalSeconds())
+        local tracked = Clock.FormatTracked(char and char.totalSeconds or 0)
+        line = string.format("Goal %s · Tracked %s · L%d", goal, tracked, level)
+    end
     if not confirmed then
         line = line .. " · Spec assumed: " .. QS.Config.SpecLabel(spec)
     end

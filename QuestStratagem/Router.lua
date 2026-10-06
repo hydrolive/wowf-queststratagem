@@ -264,9 +264,12 @@ local function InsertDungeons(steps, identity, char, level)
         elseif level + 1 >= dungeon.min and level <= dungeon.max then
             local factionOK = (not dungeon.faction) or dungeon.faction == identity.faction
             local hasQuest = dungeon.quests and #dungeon.quests > 0
-            if factionOK and hasQuest and not char.skips["dungeon-" .. dungeon.id] then
-                local block = {
-                    {
+            local bossSteps = (QS.Live and QS.Live.BossSteps(dungeon)) or {}
+            local hasBoss = #bossSteps > 0
+            if factionOK and (hasQuest or hasBoss) and not char.skips["dungeon-" .. dungeon.id] then
+                local block = {}
+                if hasQuest then
+                    block[#block + 1] = {
                         id = "dungeon-" .. dungeon.id .. "-accept",
                         cluster = "dungeon-" .. dungeon.id,
                         kind = "accept",
@@ -282,24 +285,30 @@ local function InsertDungeons(steps, identity, char, level)
                         confidence = dungeon.confidence,
                         source = dungeon.source,
                         minutes = 8,
-                    },
-                    {
-                        id = "dungeon-" .. dungeon.id .. "-door",
-                        cluster = "dungeon-" .. dungeon.id,
-                        kind = "travel",
-                        title = dungeon.name .. " entrance",
-                        text = "Arrow to the entrance.",
-                        zone = dungeon.zone,
-                        mapID = dungeon.mapID,
-                        x = dungeon.entranceX or dungeon.x,
-                        y = dungeon.entranceY or dungeon.y,
-                        pin = "exact",
-                        completeOnZone = dungeon.insideZone,
-                        confidence = dungeon.confidence,
-                        source = dungeon.source,
-                        minutes = 6,
-                    },
-                    {
+                    }
+                end
+                block[#block + 1] = {
+                    id = "dungeon-" .. dungeon.id .. "-door",
+                    cluster = "dungeon-" .. dungeon.id,
+                    kind = "travel",
+                    title = dungeon.name .. " entrance",
+                    text = "Arrow to the entrance. Boss steps inside are kills, not quests.",
+                    zone = dungeon.zone,
+                    mapID = dungeon.mapID,
+                    x = dungeon.entranceX or dungeon.x,
+                    y = dungeon.entranceY or dungeon.y,
+                    pin = "approx",
+                    completeOnZone = dungeon.insideZone,
+                    confidence = dungeon.confidence,
+                    source = dungeon.source,
+                    minutes = 6,
+                }
+                if hasBoss then
+                    for b = 1, #bossSteps do
+                        block[#block + 1] = bossSteps[b]
+                    end
+                else
+                    block[#block + 1] = {
                         id = "dungeon-" .. dungeon.id .. "-inside",
                         cluster = "dungeon-" .. dungeon.id,
                         kind = "dungeon",
@@ -311,8 +320,10 @@ local function InsertDungeons(steps, identity, char, level)
                         confidence = dungeon.confidence,
                         source = dungeon.source,
                         minutes = dungeon.minutes or 35,
-                    },
-                    {
+                    }
+                end
+                if hasQuest then
+                    block[#block + 1] = {
                         id = "dungeon-" .. dungeon.id .. "-turnin",
                         cluster = "dungeon-" .. dungeon.id,
                         kind = "turnin",
@@ -327,8 +338,8 @@ local function InsertDungeons(steps, identity, char, level)
                         confidence = dungeon.confidence,
                         source = dungeon.source,
                         minutes = 5,
-                    },
-                }
+                    }
+                end
                 local spot = #steps + 1
                 for n = 1, #steps do
                     if (steps[n].minLevel or 1) >= dungeon.min then

@@ -12,7 +12,8 @@
 6. Inject dungeon windows (see `06-BIS-DUNGEONS.md`).
 7. Run precursor injection.
 8. Run cluster batching.
-9. Hand the list to Resume.
+9. Hand the list to Resume. Pull forward, then `Level.Apply` (skipped for the demo route).
+10. After the level plan, `Live.Apply` may copy steps to attach `extraGoals` and insert the town, talent, profession, and bag block. Choose the index after that. Demo mode skips step 10. Detail is in MEMORY.md, "Live guide" and "Level plan".
 
 ## Precursor injection
 
@@ -41,21 +42,26 @@ Do not re-sort across clusters. Author order is the travel order.
 
 Insert when all are true:
 
-- Player level is inside the dungeon’s `min`–`max` (or within 1 below min, as a “pick up quests” step).
-- At least one dungeon quest is available for this faction, or a BiS item for this spec drops inside.
-- `dungeonDetours` is on.
-- The step is not already skipped.
+- Player level is inside the dungeon’s `min`–`max` (or within 1 below min).
+- Faction matches, when the row has a faction.
+- `dungeonDetours` is on, and this dungeon id is not skipped.
+- The row has at least one quest id, or a boss list. Classic rows currently have empty quest lists and a boss list, so the window still inserts.
 
 Shape:
 
-1. `accept` dungeon quests at the named giver, with zone.
-2. `travel` to entrance, with coordinates, distance arrow.
-3. `dungeon` note: bosses in order, quest objectives, BiS rows.
-4. `turnin` outside.
+1. `accept` at the giver, only when quest ids exist.
+2. `travel` to the entrance. `completeOnZone` is the instance zone name. Entrance coordinates are reported, so `pin` is `approx`.
+3. One `boss` step per name in the kill order. Each goal is that boss name, `0/1`. These steps have no quest id and are not BiS.
+4. If there is no boss list, one `dungeon` note instead.
+5. `turnin` outside, only when quest ids exist.
 
-If the player is solo and the dungeon is not soloable, the text says `group` and the clock adds the dungeon’s group minutes. Skipping is one Next, remembered.
+The block is inserted before the first step with `minLevel` at least the dungeon minimum. Starter steps sit at level 1, so a high dungeon appends at the end. A level 5 does not receive Ragefire.
 
-Forever bias: do not insert “grind this dungeon for XP.” Insert for quest XP and BiS only. Classic dungeons used this way: RFC, WC, DM (both), Stockades, SFK, BFD, Gnomer, RFK, SM library/armory/cath, RFD, Uldaman, ZF, Mara, ST, BRD, LBRS, Scholo, Strat, DM (Dire Maul). Plus the nine Forever dungeons when their quest IDs exist.
+While the player's zone equals `insideZone`, unfinished boss steps for that instance are pulled to the frontier even if detours are off or the level is outside the band. A dungeon this level deferred still surfaces that way once the player is standing inside it.
+
+Skipping a boss is Next. Kill credit is the hostile-death chat line, when the name matches. There is no interior pin in this data version, so the arrow hides and the distance line names the boss.
+
+When the level plan has no in-band quest left, only one of those dungeon windows stays active. The others are marked `levelDefer`. The closest midpoint wins. Horde level 27 keeps Razorfen Kraul and defers Blackfathom Deeps. Kill steps then fill the rest of the XP bar at that level's hub. They are not invented quests. The step text says the quest ids are not authored. While in-band quests remain, no kill step is inserted and dungeons are not deferred. Forever dungeon stubs stay out unless `includeStubs` is on. The nine Forever dungeons wait on public quest ids.
 
 ## Resume
 
@@ -64,13 +70,24 @@ On load and on quest events:
 1. Read quest log. Classic: `GetNumQuestLogEntries` / `GetQuestLogTitle` (questID is a return). If `C_QuestLog.GetNumQuestLogEntries` exists, use it.
 2. Completed set = our `turnedIn` mirror, union client completed if the probe works (`GetQuestsCompleted` or `C_QuestLog.IsQuestFlaggedCompleted`).
 3. A step is done if:
+   - `levelDefer` is set (another dungeon, or the unauthored next-band note, while this level has no in-band quest)
+   - grey: player level minus content level is greater than the green range. Starter quests stay visible through the range. See MEMORY.md, "Level plan"
+   - kills: the player has dinged past `atLevel`, or `UnitXP` has reached `xpMark` on that level. The last chunk has no mark and finishes on ding
    - accept: questID in log or in completed
    - objective: completed flag, or log objective done
    - turnin: questID in completed (log presence does not count)
-   - travel/note: done only by Next, or by entering the target zone if `completeOnZone` set
-   - dungeon: done if all attached questIDs completed, or Next
+   - travel/fly/note: done only by Next, or by entering the target zone if `completeOnZone` set
+   - dungeon: done if all attached questIDs are completed; `bisRequired` also needs the item. With no quest ids, Next is the way out
+   - hearth with no quest id: set-hearth is done when `GetBindLocation()` equals `bind`. Use-hearth is done when the player is in that zone
+   - hearth or turn-in or class `train` with a quest id: done only when that quest is completed. Log presence does not count
+   - talent: unspent dropped below `unspentAt`, or the named talent's rank reached `talentRank`
+   - vendor: still open while a requested sell has 3 or fewer free slots, or a requested repair is under 25% durability
+   - boss: `bossDown[name]`
+   - craft: product count rose above `productAt` when a product id exists, or skill rank rose above `rankAt`
+   - proftrain: skill max rose above `maxAt`
+   - bank and auction: not auto-done. Next dismisses that inventory snapshot
 4. First not-done, not-skipped step is the index.
-5. If `manualIndex` is set by Next/Back, honor it until an auto-complete moves the frontier past it.
+5. If Back set `manualStepId`, honor that step until an auto-complete moves the frontier past it. A grey or `levelDefer` manual hold is cleared and the frontier is used. A finished quest that is still in color can still show `Already done`.
 6. Off-route quests in the log: if they match any step in the next two clusters, pull those steps forward. Otherwise ignore them. Do not abandon.
 7. If the frontier is past every step at this level band and the player is under 60, show the next band’s first travel step.
 
@@ -89,8 +106,9 @@ Never point at an NPC for a quest in the completed set. If the only remaining st
 - Goal: `72 * 3600 * classMod * paceMod` seconds.
   - pace: guide 1.0, steady 1.5, first 2.5
   - classMod starting point (leveling pace, not raid): Hunter 0.90, Warlock 0.95, Mage 0.95, Druid 1.00, Rogue 1.00, Paladin 1.05, Shaman 1.05, Priest 1.10, Warrior 1.15
-- Display on large header: `Goal 68h · Tracked 6h 12m · L14`
+- Display on the large header while a level plan exists: `L28 in 42m · 12,400/24,800`. That is the next level, a guess of the remaining quest, dungeon, and kill time on this bar, and `UnitXP` / `UnitXPMax`. Under an hour the guess is minutes. At 60 the line is `L60 · xp/xpMax`. The tooltip says the guess is scaled by class and pace.
+- The 72h-to-60 goal line (`Goal 79h · Tracked … · L27` for a priest on guide pace) is only the demo route, which has no level plan. Pace and class still scale the level guess: guide 1.0, steady 1.5, first 2.5, and the class mods above.
 - Last leg line: `Last leg: 40 min · +1,076 XP`
-- ETA from remaining expected minutes on not-done steps, shown in the tooltip of the goal line.
+- Demo tooltip: remaining expected minutes on not-done steps. Level-plan tooltip: the same guess as the header.
 
 These modifiers are planning numbers, not measured Forever rates. Replace them when the clock has real samples; do not pretend they are precise.
