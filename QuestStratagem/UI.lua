@@ -1,0 +1,910 @@
+QuestStratagem = QuestStratagem or {}
+local QS = QuestStratagem
+local UI = {}
+QS.UI = UI
+
+local SIZES = {
+    large = { 460, 340 },
+    medium = { 460, 64 },
+    small = { 168, 52 },
+}
+local NEXT_SIZE = { large = "medium", medium = "small", small = "large" }
+
+local function RGB(c, a)
+    return c[1], c[2], c[3], a or 1
+end
+
+local function Strip(parent, layer)
+    local tex = parent:CreateTexture(nil, layer or "BACKGROUND")
+    tex:SetColorTexture(1, 1, 1, 1)
+    return tex
+end
+
+local function Edge(frame)
+    local bg = Strip(frame, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(RGB(QS.COLOR.bg))
+    local function line(point, rel, x, y, w, h)
+        local t = Strip(frame, "BORDER")
+        t:SetColorTexture(RGB(QS.COLOR.edge))
+        t:SetPoint(point, frame, rel or point, x or 0, y or 0)
+        if w then
+            t:SetSize(w, h)
+        end
+        return t
+    end
+    local top = line("TOPLEFT", "TOPLEFT", 0, 0)
+    top:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+    top:SetHeight(1)
+    local bot = line("BOTTOMLEFT", "BOTTOMLEFT", 0, 0)
+    bot:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+    bot:SetHeight(1)
+    local left = line("TOPLEFT", "TOPLEFT", 0, 0)
+    left:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0, 0)
+    left:SetWidth(1)
+    local right = line("TOPRIGHT", "TOPRIGHT", 0, 0)
+    right:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", 0, 0)
+    right:SetWidth(1)
+    for _, corner in ipairs({
+        { "TOPLEFT", 0, 0 },
+        { "TOPRIGHT", 0, 0 },
+        { "BOTTOMLEFT", 0, 0 },
+        { "BOTTOMRIGHT", 0, 0 },
+    }) do
+        local c = Strip(frame, "OVERLAY")
+        c:SetColorTexture(RGB(QS.COLOR.edge))
+        c:SetSize(4, 4)
+        c:SetPoint(corner[1], frame, corner[1], corner[2], corner[3])
+    end
+end
+
+local function Click(button, fn)
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    button:SetScript("OnClick", function(self, btn)
+        if btn == "RightButton" then
+            UI:CycleSize()
+            return
+        end
+        fn(self)
+    end)
+end
+
+local function TextButton(parent, label, w, h, r, g, b)
+    local button = CreateFrame("Button", nil, parent)
+    button:SetSize(w, h)
+    local bg = Strip(button, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(r, g, b, 1)
+    local fs = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    fs:SetPoint("CENTER")
+    fs:SetText(label)
+    fs:SetTextColor(RGB(QS.COLOR.body))
+    button.label = fs
+    button.bg = bg
+    button:SetScript("OnEnter", function()
+        bg:SetColorTexture(math.min(1, r + 0.08), math.min(1, g + 0.06), math.min(1, b + 0.04), 1)
+    end)
+    button:SetScript("OnLeave", function()
+        bg:SetColorTexture(r, g, b, 1)
+    end)
+    return button
+end
+
+function UI:CycleSize()
+    local size = QS.char.size or "large"
+    QS.char.size = NEXT_SIZE[size] or "large"
+    self:ApplySize()
+    self:Refresh(true)
+end
+
+function UI:Toggle()
+    if not self.frame then
+        return
+    end
+    if self.frame:IsShown() then
+        self.frame:Hide()
+        QS.char.shown = false
+    else
+        self.frame:Show()
+        QS.char.shown = true
+        self:Refresh(true)
+    end
+end
+
+function UI:ApplyShown()
+    if not self.frame then
+        return
+    end
+    if QS.char.shown == false then
+        self.frame:Hide()
+    else
+        self.frame:Show()
+    end
+end
+
+function UI:ApplySize()
+    local size = (QS.char and QS.char.size) or "large"
+    if not SIZES[size] then
+        size = "large"
+    end
+    local w, h = SIZES[size][1], SIZES[size][2]
+    local frame = self.frame
+    frame:SetSize(w, h)
+    local large = size == "large"
+    local medium = size == "medium"
+    local small = size == "small"
+    self.title:SetShown(large)
+    self.closeBtn:SetShown(large)
+    self.sizeBtn:SetShown(large)
+    self.gearBtn:SetShown(large)
+    self.status:SetShown(large)
+    self.lastLeg:SetShown(large)
+    self.goal:SetShown(large)
+    self.goalHit:SetShown(large)
+    self.nextBtn:SetShown(large)
+    self.backBtn:SetShown(large)
+    self.warning:SetShown(large)
+    self.route:SetShown(large)
+    self.indexText:SetShown(large)
+    self.rerouteBtn:SetShown(large)
+    self.unskipBtn:SetShown(large)
+    self.body:SetShown(large)
+    self.goalHeader:SetShown(large)
+    self.footer:SetShown(large)
+    for i = 1, #self.goalRows do
+        self.goalRows[i].name:SetShown(large)
+        self.goalRows[i].count:SetShown(large)
+    end
+    self.stepTitle:SetShown(large or medium)
+    self.dist:SetShown(true)
+    self.segments:SetShown(large or medium)
+    self.icon:SetShown(true)
+    self.arrow:SetShown(true)
+
+    self.icon:ClearAllPoints()
+    self.arrow:ClearAllPoints()
+    self.dist:ClearAllPoints()
+    self.stepTitle:ClearAllPoints()
+    self.segments:ClearAllPoints()
+
+    if large then
+        self.icon:SetPoint("TOPLEFT", frame, "TOPLEFT", -8, 8)
+        self.arrow:SetSize(28, 28)
+        self.arrow:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -148)
+        self.stepTitle:SetPoint("TOPLEFT", frame, "TOPLEFT", 52, -146)
+        self.stepTitle:SetPoint("RIGHT", frame, "RIGHT", -16, 0)
+        self.dist:SetPoint("TOPLEFT", frame, "TOPLEFT", 52, -164)
+        self.dist:SetJustifyH("LEFT")
+        self.segments:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -128)
+        self.segments:SetSize(428, 8)
+    elseif medium then
+        self.icon:SetPoint("LEFT", frame, "LEFT", -6, 6)
+        self.arrow:SetSize(28, 28)
+        self.arrow:SetPoint("LEFT", frame, "LEFT", 12, 6)
+        self.stepTitle:SetPoint("LEFT", self.arrow, "RIGHT", 8, 8)
+        self.stepTitle:SetPoint("RIGHT", self.dist, "LEFT", -8, 0)
+        self.dist:SetPoint("RIGHT", frame, "RIGHT", -12, 8)
+        self.dist:SetJustifyH("RIGHT")
+        self.segments:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 12, 8)
+        self.segments:SetSize(436, 6)
+    else
+        self.icon:SetPoint("LEFT", frame, "LEFT", -6, 4)
+        self.arrow:SetSize(26, 26)
+        self.arrow:SetPoint("LEFT", frame, "LEFT", 10, 0)
+        self.dist:SetPoint("LEFT", self.arrow, "RIGHT", 8, 0)
+        self.dist:SetJustifyH("LEFT")
+    end
+end
+
+function UI:ClusterProgress()
+    local route = QS.route
+    if not route or not route.index or not route.steps[route.index] then
+        return 0, 0
+    end
+    local cluster = route.steps[route.index].cluster
+    local count, pos = 0, 1
+    for i = 1, #route.steps do
+        if route.steps[i].cluster == cluster then
+            count = count + 1
+            if i == route.index then
+                pos = count
+            end
+        end
+    end
+    return pos, count
+end
+
+function UI:LayoutSegments(pos, count)
+    local bar = self.segments
+    if count < 1 then
+        count = 1
+        pos = 1
+    end
+    if count > 16 then
+        count = 16
+    end
+    local width = bar:GetWidth()
+    if not width or width < 20 then
+        width = 428
+    end
+    local gap = 2
+    local segW = (width - gap * (count - 1)) / count
+    for i = 1, 16 do
+        local seg = bar.segs[i]
+        if i <= count then
+            seg:Show()
+            seg:ClearAllPoints()
+            seg:SetSize(math.max(2, segW), bar:GetHeight() > 0 and bar:GetHeight() or 8)
+            seg:SetPoint("LEFT", bar, "LEFT", (i - 1) * (segW + gap), 0)
+            if i < pos then
+                seg:SetColorTexture(RGB(QS.COLOR.fill))
+            elseif i == pos then
+                seg:SetColorTexture(1, 0.92, 0.55, 1)
+            else
+                seg:SetColorTexture(RGB(QS.COLOR.empty))
+            end
+        else
+            seg:Hide()
+        end
+    end
+end
+
+local function GoalText(step, log)
+    local rows = {}
+    local header = step.questName or step.title or ""
+    if step.kind == "accept" then
+        header = "Pick up"
+        if step.goals then
+            for i = 1, #step.goals do
+                rows[#rows + 1] = { name = step.goals[i].name, count = "" }
+            end
+        elseif step.questIDs then
+            for i = 1, #step.questIDs do
+                rows[#rows + 1] = { name = "Quest " .. step.questIDs[i], count = "" }
+            end
+        else
+            rows[#rows + 1] = { name = (step.npc or "NPC") .. " · " .. (step.zone or ""), count = "" }
+        end
+    elseif step.kind == "objective" then
+        header = step.questName or step.title
+        local info = step.questID and log and log.inLog[step.questID]
+        if step.goals then
+            for i = 1, #step.goals do
+                local g = step.goals[i]
+                local count = ""
+                if g.need and g.need > 0 then
+                    count = (g.have or 0) .. "/" .. g.need
+                end
+                rows[#rows + 1] = { name = g.name, count = count }
+            end
+        elseif info and info.objectives and #info.objectives > 0 then
+            for i = 1, #info.objectives do
+                local o = info.objectives[i]
+                local count = ""
+                if o.need and o.need > 0 then
+                    count = (o.have or 0) .. "/" .. o.need
+                elseif o.finished then
+                    count = "done"
+                end
+                rows[#rows + 1] = { name = o.text or ("Objective " .. i), count = count }
+            end
+        else
+            rows[#rows + 1] = { name = step.text or "Objective", count = "" }
+        end
+    else
+        header = step.questName or step.title or ""
+        if step.kind == "turnin" or step.kind == "hearth" or step.kind == "train" then
+            rows[#rows + 1] = { name = (step.npc or "NPC") .. " · " .. (step.zone or ""), count = "" }
+        elseif step.text then
+            rows[#rows + 1] = { name = step.text, count = "" }
+        end
+    end
+    return header, rows
+end
+
+function UI:PaintGoals(step, log)
+    local header, rows = "", {}
+    if step then
+        header, rows = GoalText(step, log)
+    end
+    local bis = (QS.route and QS.route.index and QS.route.bisRows and QS.route.bisRows[QS.route.index]) or {}
+    for i = 1, #bis do
+        rows[#rows + 1] = { name = QS.Bis.Line(bis[i]), count = "", bis = true }
+    end
+    self.goalHeader:SetText(header)
+    for i = 1, #self.goalRows do
+        local row = self.goalRows[i]
+        local src = rows[i]
+        if src then
+            row.name:SetText(src.name)
+            row.count:SetText(src.count or "")
+            local color = src.bis and QS.COLOR.bis or QS.COLOR.body
+            row.name:SetTextColor(RGB(color))
+            row.count:SetTextColor(RGB(QS.COLOR.muted))
+            row.name:Show()
+            row.count:Show()
+        else
+            row.name:Hide()
+            row.count:Hide()
+        end
+    end
+    if #rows > #self.goalRows then
+        local last = self.goalRows[#self.goalRows]
+        last.name:SetText("+" .. (#rows - #self.goalRows + 1) .. " more in /qs where")
+        last.count:SetText("")
+        last.name:Show()
+    end
+end
+
+local function ShowArrow(arrow, measure, step)
+    if measure.mode == "ok" then
+        arrow:Show()
+        arrow:SetRotation(measure.angle or 0)
+        return
+    end
+    if measure.mode == "instance" or not (step and step.x and step.y) then
+        arrow:Hide()
+        return
+    end
+    arrow:Show()
+    arrow:SetRotation(0)
+end
+
+function UI:Refresh()
+    if not self.frame then
+        return
+    end
+    local route = QS.route
+    local step = route and route.index and route.steps[route.index]
+    local log = route and route.log
+    local measure = QS.Arrow.Measure(step)
+    self.measure = measure
+    ShowArrow(self.arrow, measure, step)
+    local dist = QS.Arrow.DistanceText(measure, step)
+    self.dist:SetText(dist)
+    if step then
+        local pos = self:ClusterProgress()
+        self.stepTitle:SetText(pos .. ". " .. (step.title or "Step"))
+        self.body:SetText(step.text or "")
+    else
+        self.stepTitle:SetText("Route complete")
+        self.body:SetText("Every authored step is done or skipped.")
+        self.dist:SetText("—")
+    end
+    self.status:SetText(QS.Resume.Status(step, log or { inLog = {}, completed = {} }, measure))
+    self.lastLeg:SetText(QS.Clock.FormatLeg(QS.char and QS.char.lastLeg))
+    self.goal:SetText(QS.Clock.Header())
+    self.route:SetText(route and route.routeName or "QuestStratagem")
+    local pos, count = self:ClusterProgress()
+    if count > 0 then
+        self.indexText:SetText(pos .. "/" .. count)
+    else
+        self.indexText:SetText("—")
+    end
+    self:LayoutSegments(pos, count)
+    local warn = route and route.warning
+    if warn and QS.char.size == "large" then
+        self.warning:SetText(warn)
+        self.warning:Show()
+    else
+        self.warning:Hide()
+    end
+    local skipped = step and QS.char.skips[step.id]
+    self.unskipBtn.label:SetText(skipped and "X" or "·")
+    self:PaintGoals(step, log)
+    self.footer:SetText("Data " .. QS.DATA_VERSION)
+end
+
+function UI:OnTick()
+    if not self.frame or not self.frame:IsShown() then
+        return
+    end
+    local route = QS.route
+    local step = route and route.index and route.steps[route.index]
+    local measure = QS.Arrow.Measure(step)
+    ShowArrow(self.arrow, measure, step)
+    local yards = measure.yards and math.floor(measure.yards + 0.5) or nil
+    if yards ~= self.lastYards or measure.word ~= self.lastWord or measure.mode ~= self.lastMode then
+        self.lastYards = yards
+        self.lastWord = measure.word
+        self.lastMode = measure.mode
+        self.dist:SetText(QS.Arrow.DistanceText(measure, step))
+        local log = route and route.log or { inLog = {}, completed = {} }
+        self.status:SetText(QS.Resume.Status(step, log, measure))
+    end
+    local sec = math.floor((QS.char and QS.char.totalSeconds) or 0)
+    if self.goal and sec ~= self.lastSec then
+        self.lastSec = sec
+        self.goal:SetText(QS.Clock.Header())
+    end
+end
+
+function UI:ToggleConfig()
+    if not self.config then
+        return
+    end
+    if self.config:IsShown() then
+        self.config:Hide()
+    else
+        self.config:Show()
+        self:RefreshConfig()
+    end
+    if self.frame and not self.frame:IsShown() then
+        self.frame:Show()
+        QS.char.shown = true
+    end
+end
+
+function UI:RefreshConfig()
+    local id = QS.Config.Identity()
+    local char = QS.char
+    self.config.faction:SetText("Faction: " .. id.faction .. " (detected)")
+    self.config.race:SetText("Race: " .. id.race)
+    self.config.class:SetText("Class: " .. id.class)
+    self.config.raw:SetText("Client: " .. tostring(id.locRace) .. " / " .. tostring(id.raceFile))
+    local spec = QS.Config.ActiveSpec()
+    local keys = QS.Config.SpecOptions(id.classFile)
+    for i = 1, 3 do
+        local button = self.config.specs[i]
+        local key = keys[i]
+        if key then
+            button:Show()
+            button.key = key
+            local treeName
+            if GetTalentTabInfo then
+                treeName = GetTalentTabInfo(i)
+            end
+            button.label:SetText(treeName or QS.Config.SpecLabel(key))
+            if key == spec then
+                button.bg:SetColorTexture(0.45, 0.34, 0.12, 1)
+            else
+                button.bg:SetColorTexture(0.18, 0.16, 0.13, 1)
+            end
+        else
+            button:Hide()
+        end
+    end
+    local confirmed = char.specConfirmed and "confirmed" or "not confirmed"
+    self.config.specState:SetText("Spec " .. confirmed)
+    for i = 1, #self.config.paces do
+        local button = self.config.paces[i]
+        if button.key == char.pace then
+            button.bg:SetColorTexture(0.45, 0.34, 0.12, 1)
+        else
+            button.bg:SetColorTexture(0.18, 0.16, 0.13, 1)
+        end
+    end
+    for i = 1, #self.config.checks do
+        local row = self.config.checks[i]
+        row.box:SetText(char[row.key] and "[x]" or "[ ]")
+    end
+    local debug = QS.db and QS.db.debug
+    self.config.debugBlock:SetShown(debug and true or false)
+end
+
+local function PlaceMinimap(button, angle)
+    local radius = 78
+    button:ClearAllPoints()
+    button:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * radius, math.sin(angle) * radius)
+end
+
+function UI:Init()
+    local frame = CreateFrame("Frame", "QuestStratagemFrame", UIParent)
+    frame:SetFrameStrata("MEDIUM")
+    frame:SetClampedToScreen(true)
+    frame:SetMovable(true)
+    frame:EnableMouse(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetScript("OnDragStart", function(self)
+        self:StartMoving()
+    end)
+    frame:SetScript("OnDragStop", function(self)
+        self:StopMovingOrSizing()
+        local point, _, relative, x, y = self:GetPoint(1)
+        QS.char.point = point
+        QS.char.relative = relative
+        QS.char.x = x
+        QS.char.y = y
+    end)
+    frame:SetScript("OnMouseUp", function(_, button)
+        if button == "RightButton" then
+            UI:CycleSize()
+        end
+    end)
+    frame:SetScript("OnEnter", function()
+        if QS.char.size ~= "small" then
+            return
+        end
+        local step = QS.route and QS.route.index and QS.route.steps[QS.route.index]
+        if not step then
+            return
+        end
+        GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
+        GameTooltip:SetText(step.title or "QuestStratagem", 1, 0.82, 0)
+        GameTooltip:AddLine(step.zone or "", 0.90, 0.88, 0.83, true)
+        GameTooltip:Show()
+    end)
+    frame:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+    Edge(frame)
+    local point = QS.char.point or "CENTER"
+    local relative = QS.char.relative or "CENTER"
+    frame:ClearAllPoints()
+    frame:SetPoint(point, UIParent, relative, QS.char.x or 0, QS.char.y or 80)
+    self.frame = frame
+
+    local icon = CreateFrame("Frame", nil, frame)
+    icon:SetSize(36, 36)
+    local iconBg = Strip(icon, "BACKGROUND")
+    iconBg:SetAllPoints()
+    iconBg:SetColorTexture(0.12, 0.10, 0.08, 1)
+    local ring = icon:CreateTexture(nil, "OVERLAY")
+    ring:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+    ring:SetPoint("CENTER", 0, 0)
+    ring:SetSize(54, 54)
+    local letter = icon:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    letter:SetPoint("CENTER", 0, 1)
+    letter:SetText("N")
+    letter:SetTextColor(RGB(QS.COLOR.gold))
+    self.icon = icon
+
+    self.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    self.title:SetPoint("TOP", frame, "TOP", 8, -10)
+    self.title:SetText("QuestStratagem")
+    self.title:SetTextColor(RGB(QS.COLOR.gold))
+
+    self.closeBtn = TextButton(frame, "X", 18, 18, 0.22, 0.16, 0.12)
+    self.closeBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -8, -8)
+    Click(self.closeBtn, function()
+        frame:Hide()
+        QS.char.shown = false
+    end)
+
+    self.sizeBtn = TextButton(frame, "-", 18, 18, 0.22, 0.16, 0.12)
+    self.sizeBtn:SetPoint("RIGHT", self.closeBtn, "LEFT", -4, 0)
+    Click(self.sizeBtn, function()
+        UI:CycleSize()
+    end)
+
+    self.gearBtn = TextButton(frame, "Set", 32, 18, 0.22, 0.16, 0.12)
+    self.gearBtn:SetPoint("RIGHT", self.sizeBtn, "LEFT", -4, 0)
+    Click(self.gearBtn, function()
+        UI:ToggleConfig()
+    end)
+
+    self.status = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    self.status:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -40)
+    self.status:SetTextColor(RGB(QS.COLOR.body))
+    self.status:SetText("Ready")
+
+    self.lastLeg = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    self.lastLeg:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -58)
+    self.lastLeg:SetTextColor(RGB(QS.COLOR.muted))
+
+    self.goal = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    self.goal:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -74)
+    self.goal:SetTextColor(RGB(QS.COLOR.muted))
+    self.goal:SetJustifyH("LEFT")
+    self.goal:SetWidth(300)
+
+    self.goalHit = CreateFrame("Frame", nil, frame)
+    self.goalHit:SetPoint("TOPLEFT", self.goal, "TOPLEFT", 0, 0)
+    self.goalHit:SetSize(300, 14)
+    self.goalHit:EnableMouse(true)
+    self.goalHit:SetScript("OnEnter", function(hit)
+        local route = QS.route
+        local seconds = QS.Clock.RemainingSeconds(route and route.steps, route and route.index, route and route.log)
+        GameTooltip:SetOwner(hit, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Time on the authored steps", 1, 0.82, 0)
+        GameTooltip:AddLine("About " .. QS.Clock.FormatTracked(seconds) .. " left at this pace.", 0.9, 0.88, 0.83, true)
+        GameTooltip:AddLine("Tracked is addon time, not /played.", 0.66, 0.63, 0.56, true)
+        GameTooltip:Show()
+    end)
+    self.goalHit:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+
+    self.nextBtn = TextButton(frame, "Next", 72, 18, 0.45, 0.16, 0.12)
+    self.nextBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -16, -40)
+    Click(self.nextBtn, function()
+        QS.Resume.Next()
+    end)
+    self.backBtn = TextButton(frame, "Back", 72, 18, 0.45, 0.16, 0.12)
+    self.backBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -16, -62)
+    Click(self.backBtn, function()
+        QS.Resume.Back()
+    end)
+
+    self.warning = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    self.warning:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -92)
+    self.warning:SetWidth(428)
+    self.warning:SetJustifyH("LEFT")
+    self.warning:SetTextColor(RGB(QS.COLOR.danger))
+
+    local div = Strip(frame, "BORDER")
+    div:SetColorTexture(RGB(QS.COLOR.edge))
+    div:SetPoint("TOPLEFT", frame, "TOPLEFT", 12, -108)
+    div:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -12, -108)
+    div:SetHeight(1)
+
+    self.route = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    self.route:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -114)
+    self.route:SetTextColor(RGB(QS.COLOR.gold))
+    self.route:SetJustifyH("LEFT")
+    self.route:SetWidth(250)
+
+    self.unskipBtn = TextButton(frame, "X", 18, 16, 0.22, 0.16, 0.12)
+    self.unskipBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -16, -112)
+    Click(self.unskipBtn, function()
+        QS.Resume.UnskipCurrent()
+    end)
+    self.rerouteBtn = TextButton(frame, "Reroute", 52, 16, 0.22, 0.16, 0.12)
+    self.rerouteBtn:SetPoint("RIGHT", self.unskipBtn, "LEFT", -4, 0)
+    Click(self.rerouteBtn, function()
+        QS.char.manualStepId = nil
+        QS.char.manualFrontierId = nil
+        QS:Rebuild()
+    end)
+    self.indexText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    self.indexText:SetPoint("RIGHT", self.rerouteBtn, "LEFT", -6, 0)
+    self.indexText:SetTextColor(RGB(QS.COLOR.muted))
+
+    self.segments = CreateFrame("Frame", nil, frame)
+    self.segments.segs = {}
+    for i = 1, 16 do
+        local seg = Strip(self.segments, "ARTWORK")
+        seg:SetColorTexture(RGB(QS.COLOR.empty))
+        self.segments.segs[i] = seg
+    end
+
+    self.arrow = frame:CreateTexture(nil, "ARTWORK")
+    self.arrow:SetTexture("Interface\\Minimap\\MinimapArrow")
+    self.arrow:SetSize(28, 28)
+    self.arrow:SetVertexColor(RGB(QS.COLOR.gold))
+
+    self.stepTitle = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    self.stepTitle:SetTextColor(RGB(QS.COLOR.body))
+    self.stepTitle:SetJustifyH("LEFT")
+
+    self.dist = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    self.dist:SetTextColor(RGB(QS.COLOR.muted))
+
+    self.body = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    self.body:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -196)
+    self.body:SetWidth(428)
+    self.body:SetJustifyH("LEFT")
+    self.body:SetWordWrap(true)
+    self.body:SetTextColor(RGB(QS.COLOR.body))
+    if self.body.SetMaxLines then
+        self.body:SetMaxLines(2)
+    end
+
+    self.goalHeader = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    self.goalHeader:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -232)
+    self.goalHeader:SetTextColor(RGB(QS.COLOR.gold))
+
+    self.goalRows = {}
+    for i = 1, 5 do
+        local name = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        name:SetPoint("TOPLEFT", frame, "TOPLEFT", 28, -250 - (i - 1) * 16)
+        name:SetWidth(340)
+        name:SetJustifyH("LEFT")
+        name:SetTextColor(RGB(QS.COLOR.body))
+        local count = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        count:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -16, -250 - (i - 1) * 16)
+        count:SetJustifyH("RIGHT")
+        count:SetTextColor(RGB(QS.COLOR.muted))
+        self.goalRows[i] = { name = name, count = count }
+    end
+
+    self.footer = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    self.footer:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 16, 8)
+    self.footer:SetTextColor(RGB(QS.COLOR.muted))
+    self.footer:SetText("Data " .. QS.DATA_VERSION)
+
+    self:BuildConfig()
+    self:BuildMinimap()
+    self:ApplySize()
+    self:ApplyShown()
+    self:Refresh()
+end
+
+function UI:BuildConfig()
+    local panel = CreateFrame("Frame", "QuestStratagemConfig", UIParent)
+    panel:SetSize(340, 460)
+    panel:SetFrameStrata("HIGH")
+    panel:SetClampedToScreen(true)
+    panel:SetPoint("CENTER", UIParent, "CENTER", 220, 0)
+    panel:EnableMouse(true)
+    panel:Hide()
+    Edge(panel)
+    self.config = panel
+
+    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOP", 0, -12)
+    title:SetText("Config")
+    title:SetTextColor(RGB(QS.COLOR.gold))
+
+    local close = TextButton(panel, "X", 18, 18, 0.22, 0.16, 0.12)
+    close:SetPoint("TOPRIGHT", -8, -8)
+    close:SetScript("OnClick", function()
+        panel:Hide()
+    end)
+
+    panel.faction = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    panel.faction:SetPoint("TOPLEFT", 16, -40)
+    panel.faction:SetTextColor(RGB(QS.COLOR.body))
+    panel.race = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    panel.race:SetPoint("TOPLEFT", 16, -58)
+    panel.race:SetTextColor(RGB(QS.COLOR.body))
+    panel.class = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    panel.class:SetPoint("TOPLEFT", 16, -76)
+    panel.class:SetTextColor(RGB(QS.COLOR.body))
+    panel.raw = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    panel.raw:SetPoint("TOPLEFT", 16, -94)
+    panel.raw:SetTextColor(RGB(QS.COLOR.muted))
+
+    local specLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    specLabel:SetPoint("TOPLEFT", 16, -118)
+    specLabel:SetText("Spec")
+    specLabel:SetTextColor(RGB(QS.COLOR.gold))
+    panel.specs = {}
+    for i = 1, 3 do
+        local button = TextButton(panel, "Spec", 96, 22, 0.18, 0.16, 0.13)
+        button:SetPoint("TOPLEFT", 16 + (i - 1) * 102, -140)
+        button:SetScript("OnClick", function(self)
+            if self.key then
+                QS.Config.ConfirmSpec(self.key)
+                UI:RefreshConfig()
+            end
+        end)
+        panel.specs[i] = button
+    end
+    panel.specState = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    panel.specState:SetPoint("TOPLEFT", 16, -166)
+    panel.specState:SetTextColor(RGB(QS.COLOR.muted))
+
+    local paceLabel = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    paceLabel:SetPoint("TOPLEFT", 16, -190)
+    paceLabel:SetText("Pace")
+    paceLabel:SetTextColor(RGB(QS.COLOR.gold))
+    panel.paces = {}
+    local paces = { "guide", "steady", "first" }
+    for i = 1, 3 do
+        local key = paces[i]
+        local button = TextButton(panel, QS.Config.PACE_LABEL[key], 96, 22, 0.18, 0.16, 0.13)
+        button.key = key
+        button:SetPoint("TOPLEFT", 16 + (i - 1) * 102, -212)
+        button:SetScript("OnClick", function()
+            QS.Config.SetPace(key)
+            UI:RefreshConfig()
+        end)
+        panel.paces[i] = button
+    end
+
+    panel.checks = {}
+    local toggles = {
+        { "dungeonDetours", "Dungeon detours" },
+        { "bisCallouts", "BiS callouts" },
+        { "classQuests", "Class quests" },
+        { "professionSteps", "Profession steps" },
+        { "includeStubs", "Include stub data" },
+    }
+    for i = 1, #toggles do
+        local key, label = toggles[i][1], toggles[i][2]
+        local row = CreateFrame("Button", nil, panel)
+        row:SetSize(300, 18)
+        row:SetPoint("TOPLEFT", 16, -246 - (i - 1) * 20)
+        row.box = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        row.box:SetPoint("LEFT", 0, 0)
+        row.box:SetTextColor(RGB(QS.COLOR.gold))
+        local text = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        text:SetPoint("LEFT", row.box, "RIGHT", 6, 0)
+        text:SetText(label)
+        text:SetTextColor(RGB(QS.COLOR.body))
+        row.key = key
+        row:SetScript("OnClick", function()
+            QS.char[key] = not QS.char[key]
+            QS:Rebuild()
+            UI:RefreshConfig()
+        end)
+        panel.checks[i] = row
+    end
+
+    local reset = TextButton(panel, "Reset route", 120, 22, 0.45, 0.16, 0.12)
+    reset:SetPoint("BOTTOMLEFT", 16, 16)
+    reset:SetScript("OnClick", function()
+        QS.Resume.Reset()
+    end)
+
+    panel.debugBlock = CreateFrame("Frame", nil, panel)
+    panel.debugBlock:SetSize(300, 22)
+    panel.debugBlock:SetPoint("BOTTOMRIGHT", -16, 16)
+    local cycle = TextButton(panel.debugBlock, "Cycle override", 120, 22, 0.22, 0.16, 0.12)
+    cycle:SetPoint("RIGHT", 0, 0)
+    cycle:SetScript("OnClick", function()
+        local order = {
+            { "Alliance", "Human", "Warrior" },
+            { "Horde", "Orc", "Shaman" },
+            { "Horde", "Troll", "Hunter" },
+            { "Alliance", "HighOrder", "Mage" },
+            { "Horde", "Windshaper", "Shaman" },
+            { "Alliance", "Dwarf", "Paladin" },
+        }
+        local char = QS.char
+        local found = 1
+        for i = 1, #order do
+            if char.factionOverride == order[i][1] and char.raceOverride == order[i][2] and char.classOverride == order[i][3] then
+                found = i + 1
+            end
+        end
+        if found > #order then
+            char.factionOverride = nil
+            char.raceOverride = nil
+            char.classOverride = nil
+        else
+            char.factionOverride = order[found][1]
+            char.raceOverride = order[found][2]
+            char.classOverride = order[found][3]
+        end
+        QS:Rebuild()
+        UI:RefreshConfig()
+    end)
+end
+
+function UI:BuildMinimap()
+    local button = CreateFrame("Button", "QuestStratagemMinimapButton", Minimap)
+    button:SetSize(28, 28)
+    button:SetFrameStrata("MEDIUM")
+    button:SetMovable(true)
+    button:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    button:RegisterForDrag("LeftButton")
+    local bg = Strip(button, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0.10, 0.09, 0.08, 0.9)
+    local ring = button:CreateTexture(nil, "OVERLAY")
+    ring:SetTexture("Interface\\Minimap\\MiniMap-TrackingBorder")
+    ring:SetPoint("CENTER")
+    ring:SetSize(44, 44)
+    local label = button:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+    label:SetPoint("CENTER", 1, 0)
+    label:SetText("QS")
+    label:SetTextColor(RGB(QS.COLOR.gold))
+    button:SetScript("OnClick", function(_, btn)
+        if btn == "RightButton" then
+            UI:ToggleConfig()
+        else
+            UI:Toggle()
+        end
+    end)
+    button:SetScript("OnDragStart", function(self)
+        self.dragging = true
+    end)
+    button:SetScript("OnDragStop", function(self)
+        self.dragging = false
+    end)
+    button:SetScript("OnUpdate", function(self)
+        if not self.dragging then
+            return
+        end
+        local mx, my = Minimap:GetCenter()
+        local scale = UIParent:GetEffectiveScale()
+        local cx, cy = GetCursorPosition()
+        cx, cy = cx / scale, cy / scale
+        local angle = math.atan2(cy - my, cx - mx)
+        QS.char.minimapAngle = angle
+        PlaceMinimap(self, angle)
+    end)
+    button:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+        GameTooltip:SetText("QuestStratagem", 1, 0.82, 0)
+        GameTooltip:AddLine("Left-click toggles the panel. Right-click opens config.", 0.9, 0.88, 0.83, true)
+        GameTooltip:Show()
+    end)
+    button:SetScript("OnLeave", function()
+        GameTooltip:Hide()
+    end)
+    PlaceMinimap(button, QS.char.minimapAngle or 0.8)
+    self.minimap = button
+end

@@ -1,0 +1,27 @@
+## Interface: 16001
+## Title: QuestStratagem
+## Notes: Offline 1-60 stratagem for WoW Forever. Arrow, chains, BiS.
+## Author: QuestStratagem
+## Version: 0.1.0
+## SavedVariables: QuestStratagemDB
+## SavedVariablesPerCharacter: QuestStratagemCharDB
+## OptionalDeps: Questie, TomTom
+
+Api.lua
+Core.lua
+Config.lua
+Arrow.lua
+Clock.lua
+Bis.lua
+Data\Index.lua
+Data\Demo.lua
+Data\Classic\Alliance\Human.lua
+Data\Classic\Alliance\Stubs.lua
+Data\Classic\Horde\Durotar.lua
+Data\Classic\Horde\Stubs.lua
+Data\Forever\Skyborne.lua
+Data\Forever\Overlay.lua
+Data\Bis\Index.lua
+Router.lua
+Resume.lua
+UI.lua
