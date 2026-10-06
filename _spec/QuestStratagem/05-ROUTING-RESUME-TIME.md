@@ -80,7 +80,7 @@ On load and on quest events:
    - weapon, armor, dual, and opportunity: not auto-done. Next dismisses that reminder. These do not go grey because of the zone's starter level
    - objective: completed flag, or log objective done
    - turnin: questID in completed (log presence does not count)
-   - travel/fly/note: done only by Next, or by entering the target zone if `completeOnZone` set
+   - travel/fly/note: done only by Next, or by entering the target zone if `completeOnZone` set. Horde standing in Mulgore, Thunder Bluff, or Skywatcher Plateau, with a destination outside those places, gets a travel step titled Fly to that zone. The pin is Tal in Thunder Bluff (map 1456, 0.47, 0.49), inside the central totem. The step still completes on entering the destination zone, so `zone` stays the destination and standing in Thunder Bluff does not finish it. 34.3, 25.8 is the zeppelin to Valanaar and is not a flight pin. A trip that stays inside Mulgore or Thunder Bluff, and any Alliance trip, stays Go to
    - dungeon: done if all attached questIDs are completed; `bisRequired` also needs the item. With no quest ids, Next is the way out
    - hearth with no quest id: set-hearth is done when `GetBindLocation()` equals `bind`. Use-hearth is done when the player is in that zone
    - hearth or turn-in or class `train` with a quest id: done only when that quest is completed. Log presence does not count

@@ -997,14 +997,6 @@ function Live.Opportunities(identity, char, log, place)
             source = "classicwowforever-2026-09-27",
         }
     end
-    local zone = place and (place.zone or "") or ""
-    local sub = place and (place.sub or "") or ""
-    local real = place and (place.real or "") or ""
-    if zone == "Mulgore" or sub == "Skywatcher Plateau" or real == "Mulgore" or #plateauGoals > 0 then
-        NeedFlight("Skywatcher Plateau", "Get the Skywatcher Plateau flight path from the flight master (34.3, 25.8)", {
-            zone = "Mulgore", mapID = 1412, x = 0.343, y = 0.258,
-        })
-    end
     local cityName = place and CurrentCity(place) or nil
     if cityName then
         NeedFlight(cityName, "Get the " .. cityName .. " flight path", nil)

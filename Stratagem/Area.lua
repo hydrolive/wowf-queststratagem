@@ -89,6 +89,38 @@ local function ZoneHere(zone)
     return zone == place.zone or zone == place.real or zone == place.sub
 end
 
+-- 34.3, 25.8 is the Valanaar zeppelin. Horde flights out of Mulgore leave from Tal.
+local WIND_HERE = {
+    ["Mulgore"] = true,
+    ["Thunder Bluff"] = true,
+    ["Skywatcher Plateau"] = true,
+}
+
+local function NamedHere(name)
+    return name and WIND_HERE[name] and true or false
+end
+
+local function LeavingByWind(dest)
+    if not dest or NamedHere(dest) then
+        return false
+    end
+    local id = QS.identity
+    if not id or id.faction ~= "Horde" then
+        return false
+    end
+    local place = QS.Api and QS.Api.Place and QS.Api.Place()
+    if not place then
+        return false
+    end
+    return NamedHere(place.zone) or NamedHere(place.sub) or NamedHere(place.real)
+end
+
+local function WindText(dest)
+    return "Fly from Tal, inside the totem on the central rise in Thunder Bluff (47, 49). "
+        .. "34.3, 25.8 on Skywatcher Plateau is the zeppelin to Valanaar. It does not fly to "
+        .. dest .. "."
+end
+
 local function MakeRow(id, info)
     local place = PlaceFor(info.title)
     return {
@@ -484,6 +516,20 @@ local function CopyGoals(step, goals)
     end
 end
 
+local function LeadGoal(step, name)
+    local goals = step.goals
+    if not goals or not name then
+        return
+    end
+    for i = 2, #goals do
+        if goals[i].name == name then
+            local row = table.remove(goals, i)
+            table.insert(goals, 1, row)
+            return
+        end
+    end
+end
+
 function Area.Apply(built, char, log)
     if not built or not built.steps or not log or char.demo or built.key == "demo" then
         return
@@ -515,25 +561,45 @@ function Area.Apply(built, char, log)
     -- A named plateau stays on the area step, so a starter zone does not grey the walk.
     if not arrived and not (place and place.placeName) then
         local goals = GoalsFor(chosen)
-        table.insert(goals, 1, { name = "Arrive in " .. chosen.zone, have = 0, need = 1 })
+        local byWind = LeavingByWind(chosen.zone)
+        local title = "Go to " .. chosen.zone
+        local arrive = "Arrive in " .. chosen.zone
+        local mapID = place and place.mapID or nil
+        local x = place and place.x or nil
+        local y = place and place.y or nil
+        local npc = place and place.npc or nil
+        local text = Describe(chosen, others, false)
+        local source = (place and place.source) or "quest-log"
+        if byWind then
+            title = "Fly to " .. chosen.zone
+            arrive = title
+            mapID = 1456
+            x = 0.47
+            y = 0.49
+            npc = "Tal"
+            text = WindText(chosen.zone) .. " " .. text
+            source = "wowhead-thunder-bluff-tal"
+        end
+        table.insert(goals, 1, { name = arrive, have = 0, need = 1 })
         block[#block + 1] = {
             id = chosen.goId or ("dyn-area-go-" .. Slug(chosen.key) .. tail),
             cluster = "area-" .. Slug(chosen.zone),
             kind = "travel",
-            title = "Go to " .. chosen.zone,
-            text = Describe(chosen, others, false),
+            title = title,
+            text = text,
             zone = chosen.zone,
-            mapID = place and place.mapID or nil,
-            x = place and place.x or nil,
-            y = place and place.y or nil,
-            pin = place and "approx" or nil,
-            npc = place and place.npc or nil,
+            mapID = mapID,
+            x = x,
+            y = y,
+            pin = (mapID and x and y) and "approx" or nil,
+            npc = npc,
             completeOnZone = chosen.zone,
             goalHeader = "Area",
             goals = AppendExtras(goals, chosen, others, false),
+            flyGoal = byWind and title or nil,
             minutes = 15,
-            confidence = place and "reported" or "log",
-            source = (place and place.source) or "quest-log",
+            confidence = (place or byWind) and "reported" or "log",
+            source = source,
         }
     end
     block[#block + 1] = AreaStep(chosen, ids, tail, arrived, others)
@@ -560,6 +626,10 @@ function Area.Apply(built, char, log)
     end
     for i = 1, #block do
         CopyGoals(block[i], built.opportunityGoals)
+        if block[i].flyGoal then
+            LeadGoal(block[i], block[i].flyGoal)
+            block[i].flyGoal = nil
+        end
         if (place and place.npc == "Muln Earthfury") or block[i].npc == "Muln Earthfury" then
             MergeTitles(block[i], { "Defending the Dead", "The Broodmother" })
         end

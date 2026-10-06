@@ -1,4 +1,8 @@
 -- Stratagem changelog
+-- 0.1.9 (2026-10-06)
+-- Horde leaving Mulgore, Thunder Bluff, or Skywatcher Plateau for another
+-- zone says Fly to that zone. The arrow is Tal in Thunder Bluff, inside
+-- the central totem (47, 49). 34.3, 25.8 is the zeppelin to Valanaar.
 -- 0.1.8 (2026-10-05)
 -- A reward with no gear upgrade is the choice that vendors for the most.
 -- A gear winner adds an Equip objective, done when that item is worn.
