@@ -137,6 +137,12 @@ function UI:ApplySize()
     self.closeBtn:SetShown(large)
     self.sizeBtn:SetShown(large)
     self.gearBtn:SetShown(large)
+    if self.pathBtn then
+        self.pathBtn:SetShown(large)
+    end
+    if not large and self.pathPanel then
+        self.pathPanel:Hide()
+    end
     self.status:SetShown(large)
     self.lastLeg:SetShown(large)
     self.goal:SetShown(large)
@@ -616,6 +622,9 @@ function UI:Refresh()
     if self.config and self.config:IsShown() then
         self:RefreshConfig()
     end
+    if self.pathPanel and self.pathPanel:IsShown() then
+        self:PaintPath()
+    end
 end
 
 function UI:OnTick()
@@ -751,6 +760,222 @@ local function PlaceMinimap(button, angle)
     button:SetPoint("CENTER", Minimap, "CENTER", math.cos(angle) * radius, math.sin(angle) * radius)
 end
 
+local PATH_VISIBLE = 16
+
+function UI:PaintPath()
+    if not self.pathPanel or not self.pathPanel:IsShown() then
+        return
+    end
+    local rows, focus = QS.Resume.PathRows(QS.route)
+    self.pathRows = rows
+    local level = UnitLevel("player") or 1
+    local xp = UnitXP("player") or 0
+    local xpMax = UnitXPMax("player") or 0
+    local label, fraction = QS.Resume.Journey(level, xp, xpMax)
+    self.pathLabel:SetText(label)
+    local width = 308
+    if fraction <= 0 then
+        self.pathFill:Hide()
+    else
+        self.pathFill:Show()
+        self.pathFill:SetWidth(math.max(1, math.floor(width * fraction + 0.5)))
+    end
+    local maxOffset = #rows - PATH_VISIBLE
+    if maxOffset < 0 then
+        maxOffset = 0
+    end
+    local nowId = rows[focus] and rows[focus].id
+    if self.pathStick ~= nowId then
+        self.pathStick = nowId
+        local want = focus - 4
+        if want < 0 then
+            want = 0
+        end
+        if want > maxOffset then
+            want = maxOffset
+        end
+        self.pathOffset = want
+    end
+    if not self.pathOffset or self.pathOffset < 0 then
+        self.pathOffset = 0
+    end
+    if self.pathOffset > maxOffset then
+        self.pathOffset = maxOffset
+    end
+    for i = 1, PATH_VISIBLE do
+        local line = self.pathLines[i]
+        local src = rows[self.pathOffset + i]
+        if src then
+            line:Show()
+            local title = src.title or "Step"
+            if src.state == "done" then
+                title = "|TInterface\\RaidFrame\\ReadyCheck-Ready:12|t " .. title
+                line.name:SetTextColor(RGB(QS.COLOR.muted))
+            elseif src.state == "now" then
+                line.name:SetTextColor(RGB(QS.COLOR.gold))
+            elseif src.state == "skip" then
+                line.name:SetTextColor(RGB(QS.COLOR.muted))
+            else
+                line.name:SetTextColor(RGB(QS.COLOR.body))
+            end
+            line.name:SetText(title)
+            if src.zone and src.zone ~= "" then
+                line.zone:SetText(src.zone)
+                line.zone:Show()
+            else
+                line.zone:Hide()
+            end
+            if src.state == "now" then
+                line.bg:Show()
+            else
+                line.bg:Hide()
+            end
+        else
+            line:Hide()
+        end
+    end
+    local bar = self.pathScroll
+    self.pathMax = maxOffset
+    if maxOffset <= 0 then
+        bar:Hide()
+    else
+        bar:Show()
+        self.pathLock = true
+        bar:SetMinMaxValues(0, maxOffset)
+        bar:SetValue(maxOffset - self.pathOffset)
+        self.pathLock = false
+    end
+end
+
+function UI:TogglePath()
+    if not self.pathPanel then
+        return
+    end
+    if self.pathPanel:IsShown() then
+        self.pathPanel:Hide()
+        return
+    end
+    self.pathStick = nil
+    self.pathPanel:Show()
+    self:PaintPath()
+end
+
+function UI:BuildPath()
+    local panel = CreateFrame("Frame", "QuestStratagemPath", UIParent)
+    panel:SetSize(340, 440)
+    panel:SetFrameStrata("HIGH")
+    panel:SetClampedToScreen(true)
+    panel:SetPoint("TOPRIGHT", self.frame, "TOPLEFT", -8, 0)
+    panel:EnableMouse(true)
+    panel:Hide()
+    Edge(panel)
+    self.pathPanel = panel
+
+    local title = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+    title:SetPoint("TOP", 0, -12)
+    title:SetText("Path")
+    title:SetTextColor(RGB(QS.COLOR.gold))
+
+    local close = TextButton(panel, "X", 18, 18, 0.22, 0.16, 0.12)
+    close:SetPoint("TOPRIGHT", -8, -8)
+    Click(close, function()
+        panel:Hide()
+    end)
+
+    local track = CreateFrame("Frame", nil, panel)
+    track:SetPoint("TOPLEFT", 16, -40)
+    track:SetSize(308, 16)
+    local empty = Strip(track, "BACKGROUND")
+    empty:SetAllPoints()
+    empty:SetColorTexture(RGB(QS.COLOR.empty))
+    local fill = Strip(track, "ARTWORK")
+    fill:SetPoint("TOPLEFT", 0, 0)
+    fill:SetPoint("BOTTOMLEFT", 0, 0)
+    fill:SetWidth(1)
+    fill:SetColorTexture(RGB(QS.COLOR.fill))
+    self.pathFill = fill
+    local label = track:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    label:SetPoint("CENTER")
+    label:SetTextColor(RGB(QS.COLOR.body))
+    self.pathLabel = label
+
+    self.pathLines = {}
+    for i = 1, PATH_VISIBLE do
+        local line = CreateFrame("Frame", nil, panel)
+        line:SetSize(300, 20)
+        line:SetPoint("TOPLEFT", 12, -64 - (i - 1) * 20)
+        local bg = Strip(line, "BACKGROUND")
+        bg:SetAllPoints()
+        bg:SetColorTexture(1, 0.82, 0, 0.16)
+        bg:Hide()
+        line.bg = bg
+        local name = line:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        name:SetPoint("LEFT", 4, 0)
+        name:SetWidth(190)
+        name:SetJustifyH("LEFT")
+        name:SetWordWrap(false)
+        line.name = name
+        local zone = line:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        zone:SetPoint("RIGHT", -4, 0)
+        zone:SetWidth(96)
+        zone:SetJustifyH("RIGHT")
+        zone:SetWordWrap(false)
+        zone:SetTextColor(RGB(QS.COLOR.muted))
+        line.zone = zone
+        self.pathLines[i] = line
+    end
+
+    local list = CreateFrame("Frame", nil, panel)
+    list:SetPoint("TOPLEFT", 12, -64)
+    list:SetPoint("BOTTOMRIGHT", -28, 12)
+    list:EnableMouseWheel(true)
+    list:SetScript("OnMouseWheel", function(_, delta)
+        local count = #(UI.pathRows or {})
+        local maxOffset = count - PATH_VISIBLE
+        if maxOffset < 0 then
+            maxOffset = 0
+        end
+        local nextOff = (UI.pathOffset or 0) - (delta * 3)
+        if nextOff < 0 then
+            nextOff = 0
+        end
+        if nextOff > maxOffset then
+            nextOff = maxOffset
+        end
+        UI.pathOffset = nextOff
+        UI.pathStick = UI.pathRows and UI.pathRows[1] and UI.pathStick
+        UI:PaintPath()
+    end)
+
+    local bar = CreateFrame("Slider", nil, panel)
+    bar:SetOrientation("VERTICAL")
+    bar:SetWidth(12)
+    bar:SetPoint("TOPRIGHT", -10, -64)
+    bar:SetPoint("BOTTOMRIGHT", -10, 12)
+    bar:SetMinMaxValues(0, 1)
+    bar:SetValueStep(1)
+    bar:SetValue(0)
+    local thumb = bar:CreateTexture(nil, "OVERLAY")
+    thumb:SetColorTexture(RGB(QS.COLOR.edge))
+    thumb:SetSize(12, 28)
+    bar:SetThumbTexture(thumb)
+    bar:SetScript("OnValueChanged", function(_, value)
+        if UI.pathLock then
+            return
+        end
+        local maxOffset = UI.pathMax or 0
+        UI.pathOffset = maxOffset - math.floor((value or 0) + 0.5)
+        if UI.pathOffset < 0 then
+            UI.pathOffset = 0
+        end
+        if UI.pathOffset > maxOffset then
+            UI.pathOffset = maxOffset
+        end
+        UI:PaintPath()
+    end)
+    self.pathScroll = bar
+end
+
 function UI:Init()
     local frame = CreateFrame("Frame", "QuestStratagemFrame", UIParent)
     frame:SetFrameStrata("MEDIUM")
@@ -866,6 +1091,11 @@ function UI:Init()
     Click(self.nextBtn, function()
         QS.Resume.Next()
     end)
+    self.pathBtn = TextButton(frame, "Path", 56, 18, 0.22, 0.16, 0.12)
+    self.pathBtn:SetPoint("RIGHT", self.nextBtn, "LEFT", -6, 0)
+    Click(self.pathBtn, function()
+        UI:TogglePath()
+    end)
     self.backBtn = TextButton(frame, "Back", 72, 18, 0.45, 0.16, 0.12)
     self.backBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -16, -62)
     Click(self.backBtn, function()
@@ -963,6 +1193,7 @@ function UI:Init()
     self.footer:SetTextColor(RGB(QS.COLOR.muted))
     self.footer:SetText("Data " .. QS.DATA_VERSION)
 
+    self:BuildPath()
     self:BuildConfig()
     self:BuildMinimap()
     self:ApplySize()

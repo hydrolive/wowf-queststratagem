@@ -104,6 +104,12 @@ Never point at an NPC for a quest in the completed set. If the only remaining st
 - Back: show the previous stored step, even when that id is no longer in the built route. The first Back from the live step opens that previous step. It does not open the live step again. Status reads `Review`, or `Done` when that stored step is already finished. The yellow line is that step's place, and finished steps before it show the ready-check icon. The button is hidden when the only stored step is the live one, when history is empty, or when you are already on the oldest stored step.
 - Next while reviewing walks toward the live step. If the next stored step is the live one, Next returns to the live step instead of reviewing it. It does not skip the quest you are actually on. The last Next in the history returns to that live step.
 
+## Fast band
+
+A quest is on the route when its level is from two below you through one above you. An elite is on the route only when you have reached its level. Grey quests stay off. A quest with no level still counts, except Defending the Dead (30) and The Broodmother (31 elite), which use those published levels when the log has none. A finished quest in the zone you are standing in is still the turn-in. Anything outside the band stays in the log and is not the step, so Clean Quest Log does not drop it for being early or late.
+
+At 25–28 with nothing left in that band, the fast road is Freewind Post in Thousand Needles. Hillsbrad is the other road. Stonetalon is the earlier road, about 20–26, and is not the trip once its quests fall more than two levels below you.
+
 ## Clean Quest Log
 
 Options shows `Clean Quest Log` and `Removes X Quests`. X counts log quests the current route will not do. A quest counts as intended when a step that is not grey names its id or its title. An area step names the quests in the cluster you are on. A sourced place, such as Defending the Dead on Skywatcher Plateau, also keeps an in-color log quest that is not the current step yet. A grey quest is not intended, even if an old starter step or the area cluster still mentions it. Quests the route never names are not intended. The click abandons that list, highest log index first, and leaves the rest. Demo mode abandons nothing.

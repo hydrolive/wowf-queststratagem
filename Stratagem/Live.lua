@@ -79,6 +79,7 @@ local PLATEAU_OFFERS = {
         questID = 96261,
         minLevel = 23,
         questLevel = 31,
+        elite = true,
         faction = "Horde",
         goal = "Accept The Broodmother (elite, Gloomrise, bring help)",
         text = "Muln Earthfury offers The Broodmother. Kill Broodmother Valraxx at Gloomrise and bring help. The pin stays on Muln.",
@@ -930,6 +931,9 @@ function Live.Opportunities(identity, char, log, place)
         local offer = PLATEAU_OFFERS[i]
         local open = true
         if offer.faction and offer.faction ~= faction then
+            open = false
+        end
+        if open and QS.Level and QS.Level.FastQuest and not QS.Level.FastQuest(offer.questLevel, offer.elite, offer.minLevel) then
             open = false
         end
         if open and not InColor(level, offer.questLevel, offer.minLevel) then

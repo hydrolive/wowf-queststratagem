@@ -932,6 +932,99 @@ function Resume.Reset()
     QS:Rebuild()
 end
 
+function Resume.Journey(level, xp, xpMax)
+    level = tonumber(level) or 1
+    if level < 1 then
+        level = 1
+    end
+    if level > 60 then
+        level = 60
+    end
+    if level >= 60 then
+        return "60/60", 1
+    end
+    xp = tonumber(xp) or 0
+    xpMax = tonumber(xpMax) or 0
+    if xpMax < 1 then
+        xpMax = 1
+    end
+    if xp < 0 then
+        xp = 0
+    end
+    if xp > xpMax then
+        xp = xpMax
+    end
+    local fraction = (level - 1 + (xp / xpMax)) / 60
+    if fraction < 0 then
+        fraction = 0
+    end
+    if fraction > 1 then
+        fraction = 1
+    end
+    return level .. "/60", fraction
+end
+
+function Resume.PathRows(route)
+    local rows = {}
+    local steps = route and route.steps or {}
+    local index = route and route.index
+    local log = route and route.log or { inLog = {}, completed = {} }
+    local onRoute = {}
+    for i = 1, #steps do
+        local id = steps[i].id
+        if id then
+            onRoute[id] = true
+        end
+    end
+    local hist = QS.char and QS.char.history
+    if type(hist) == "table" then
+        for i = 1, #hist do
+            local row = hist[i]
+            if row and row.id and not onRoute[row.id] and Resume.Done(row, log) then
+                rows[#rows + 1] = {
+                    id = row.id,
+                    title = row.title or Resume.Caption(row),
+                    zone = row.zone,
+                    state = "done",
+                }
+            end
+        end
+    end
+    local focus = 1
+    for i = 1, #steps do
+        local step = steps[i]
+        local show = true
+        if step.levelDefer then
+            show = false
+        elseif step.liveNote and i ~= index then
+            show = false
+        end
+        if show then
+            local state = "ahead"
+            if i == index then
+                state = "now"
+            elseif Resume.Done(step, log) then
+                state = "done"
+            elseif index and i < index then
+                state = "skip"
+            end
+            rows[#rows + 1] = {
+                id = step.id,
+                title = step.title or Resume.Caption(step),
+                zone = step.zone,
+                state = state,
+            }
+            if i == index then
+                focus = #rows
+            end
+        end
+    end
+    if focus < 1 then
+        focus = 1
+    end
+    return rows, focus
+end
+
 function Resume.Where()
     local route = QS.route
     if not route or not route.index then

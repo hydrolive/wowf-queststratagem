@@ -131,10 +131,26 @@ local function MakeRow(id, info)
         id = id,
         title = info.title or ("Quest " .. id),
         complete = info.complete and true or false,
+        level = info.level,
         objectives = info.objectives or {},
         zone = (place and place.zone) or info.zone or "Quests",
         place = place,
     }
+end
+
+local function KeepRow(row)
+    if row.complete then
+        if ZoneHere(row.zone) then
+            return true
+        end
+        if row.place and ZoneHere(row.place.placeName or row.place.zone) then
+            return true
+        end
+    end
+    if QS.Level and QS.Level.FastTitle then
+        return QS.Level.FastTitle(row.title, row.level)
+    end
+    return true
 end
 
 local function Rows(log)
@@ -539,7 +555,13 @@ function Area.Apply(built, char, log)
     if not built or not built.steps or not log or char.demo or built.key == "demo" then
         return
     end
-    local rows = Rows(log)
+    local raw = Rows(log)
+    local rows = {}
+    for i = 1, #raw do
+        if KeepRow(raw[i]) then
+            rows[#rows + 1] = raw[i]
+        end
+    end
     if #rows == 0 then
         return
     end
@@ -637,7 +659,15 @@ function Area.Apply(built, char, log)
             block[i].flyGoal = nil
         end
         if (place and place.npc == "Muln Earthfury") or block[i].npc == "Muln Earthfury" then
-            MergeTitles(block[i], { "Defending the Dead", "The Broodmother" })
+            local pickup = {}
+            local offered = { "Defending the Dead", "The Broodmother" }
+            for n = 1, #offered do
+                local name = offered[n]
+                if not QS.Level or not QS.Level.FastTitle or QS.Level.FastTitle(name, nil) then
+                    pickup[#pickup + 1] = name
+                end
+            end
+            MergeTitles(block[i], pickup)
         end
         MergeTitles(block[i], built.acceptTitles)
     end

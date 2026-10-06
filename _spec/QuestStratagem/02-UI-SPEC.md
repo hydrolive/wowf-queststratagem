@@ -32,7 +32,9 @@ Top block:
 - Window title: `Stratagem`.
 - Status word: `Ready`, `Walking`, `In range`, `Turn in`, `Area`, `Dungeon`, `Hearth`, `Talent`, `Train`, `Craft`, `Sell`, `Repair`, `Bank`, `Auction`, `Boss`, `Kills`, `Already done`, `BiS still missing`, `Review`, `Done`. `Done` is a stored step you are reviewing that is already finished.
 - Subline: `Last leg: 40 min · +1,076 XP` using the previous completed step’s duration and XP delta.
-- Right side, stacked: `Next` and `Back` as small red-brown buttons. Not Ask. Back is hidden when this character has no earlier step. Medium and Small hide it as well. `/qs back` still does nothing in that case.
+- Right side, stacked: `Next` and `Back` as small red-brown buttons. `Path` sits on the Next row. Not Ask. Back is hidden when this character has no earlier step. Medium and Small hide Next, Back, and Path. `/qs back` still does nothing when Back is hidden.
+
+Path opens a list anchored to the left of the window. The bar at the top reads `27/60` for a level 27 character. The fill is the levels already finished plus how far the current level's XP bar is, out of 60. The list is the stored steps you have finished, then the route in order. A finished step has the ready-check icon. The step on screen is gold and the list opens scrolled so a few finished steps sit above it and the next steps sit below. The wheel and the slider move through the rest. Deferred steps stay off the list.
 
 Divider.
 

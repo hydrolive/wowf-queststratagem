@@ -1,4 +1,9 @@
 -- Stratagem changelog
+-- 0.1.12 (2026-10-06)
+-- A quest more than one level above you waits. An elite waits until
+-- you reach its level. Quests more than two levels below you are not
+-- the trip. At 27 the fast road is Thousand Needles. Path lists the
+-- steps around the one you are on, with progress as level/60.
 -- 0.1.11 (2026-10-06)
 -- The yellow line is the step on screen. Back and Next change it.
 -- A finished earlier step shows a ready-check. The first Back leaves

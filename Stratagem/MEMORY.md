@@ -163,7 +163,7 @@ In-band means an accept, objective, or turn-in that is not done, not grey, and w
 
 When nothing in band is left, the route name becomes `Level 27 · Thousand Needles`. One dungeon stays: among the windows actually inserted, not cleared, not grey by midpoint, inside the level band, the closest midpoint wins, and a higher minimum breaks a tie. At Horde 27 that is Razorfen Kraul (24–32, midpoint 28). Blackfathom Deeps (midpoint 24) is deferred, and so is the "next band is not authored" step. Other dungeon steps get `levelDefer`, which resume treats as done. The door text says mobs in the level's zone finish the bar. If less than 20% of the level remains, the dungeon is skipped and only kills fill the bar. Bosses already in `bossDown` count as cleared.
 
-Kill steps are new tables, ids `dyn-kills-{level}-{n}`, kind `kills`. They are inserted after the chosen dungeon. Each chunk is about 10% of the level, one to four steps. A chunk finishes when `UnitXP` reaches its mark, or on ding for the last chunk. The arrow points at a reported hub with `pin = "approx"`. The text says quest ids for that band are not in the guide, grey quests are skipped, and this finishes the bar. Horde hubs: 1–12 The Crossroads, 13–22 Camp Taurajo, 25–28 Freewind Post (the note says Hillsbrad is the other road), 29–36 Grom'gol, 37–44 Gadgetzan, 45–52 Marshal's Refuge, 53–60 Everlook. Alliance: 1–12 Sentinel Hill, 13–20 Thelsamar, 21–28 Darkshire, 29–36 Booty Bay, then the same Tanaris and Un'Goro hubs, 53–60 Light's Hope Chapel. Those coordinates are approximate.
+Kill steps are new tables, ids `dyn-kills-{level}-{n}`, kind `kills`. They are inserted after the chosen dungeon. Each chunk is about 10% of the level, one to four steps. A chunk finishes when `UnitXP` reaches its mark, or on ding for the last chunk. The arrow points at a reported hub with `pin = "approx"`. The text says quest ids for that band are not in the guide, grey quests are skipped, and this finishes the bar. Horde hubs: 1–12 The Crossroads, 13–22 Camp Taurajo, 25–28 Freewind Post (the note says this is the fast road, Hillsbrad is the other road, and Stonetalon is the earlier road at about 20–26), 29–36 Grom'gol, 37–44 Gadgetzan, 45–52 Marshal's Refuge, 53–60 Everlook. Alliance: 1–12 Sentinel Hill, 13–20 Thelsamar, 21–28 Darkshire, 29–36 Booty Bay, then the same Tanaris and Un'Goro hubs, 53–60 Light's Hope Chapel. Those coordinates are approximate.
 
 Planning numbers, not measured Forever rates: a same-level kill is `45 + 5 * level` XP (180 at 27) and about 22 seconds. A quest slice defaults to 8 minutes, scaled if it is clipped. A boss slice is about 4 minutes. The dungeon is about 35% of the level's XP, capped by what is left.
 
@@ -280,6 +280,14 @@ The yellow line is the place of the step on screen. Back and Next change it. A t
 
 Lua files for this pass were parsed as Lua 5.1. The place line, the ready-check, and Back and Next were executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.12
+
+The fast band is two levels below you through one level above you. An elite waits until you reach its level. Grey quests stay off the route. Defending the Dead is 30 and The Broodmother is a 31 elite, so at 27 or 28 they stay in the log and are not the step. 0.1.8 put them ahead of the trip out of Mulgore. A finished quest in the zone you are standing in is still turned in. A quest more than two levels below you is not a new trip, so Stonetalon quests from the low end of that zone do not pull a 27 there. With nothing left in the band, 25–28 points at Freewind Post in Thousand Needles. Hillsbrad is the other road.
+
+Path opens a list of finished steps and the route ahead. The bar reads the current level over 60, and the fill includes progress through the current level. The list opens on the step on screen, with a few finished steps above it.
+
+Lua files for this pass were parsed as Lua 5.1. The fast band, the 27 route, and the path list were executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -327,3 +335,4 @@ Lua files for this pass were parsed as Lua 5.1. The place line, the ready-check,
 - 2026-10-06: Horde leaving Mulgore for another zone flies from Tal in Thunder Bluff. 34.3, 25.8 is the Valanaar zeppelin, not a flight master.
 - 2026-10-06: Clean Quest Log abandons log quests the current route will not do. In-color quests the route names stay.
 - 2026-10-06: The yellow line follows the step on screen. Finished earlier steps show the ready-check icon. The first Back leaves the live step.
+- 2026-10-06: The fast band is two levels below through one level above. Elites wait until you reach their level. At 27 the road is Thousand Needles. Path shows that road as level/60.

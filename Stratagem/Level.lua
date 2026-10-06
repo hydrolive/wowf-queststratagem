@@ -25,7 +25,7 @@ local ZONE_LEVEL = {
 local HORDE_ZONE = {
     { max = 12, zone = "The Barrens", hub = "The Crossroads", mapID = 1413, x = 0.520, y = 0.298 },
     { max = 22, zone = "The Barrens", hub = "Camp Taurajo", mapID = 1413, x = 0.446, y = 0.586 },
-    { max = 28, zone = "Thousand Needles", hub = "Freewind Post", mapID = 1441, x = 0.460, y = 0.510, note = "Hillsbrad is the other road for this level." },
+    { max = 28, zone = "Thousand Needles", hub = "Freewind Post", mapID = 1441, x = 0.460, y = 0.510, note = "Fast road for 25-28. Hillsbrad is the other road. Stonetalon is the earlier road, about 20-26." },
     { max = 36, zone = "Stranglethorn Vale", hub = "Grom'gol Base Camp", mapID = 1434, x = 0.318, y = 0.292 },
     { max = 44, zone = "Tanaris", hub = "Gadgetzan", mapID = 1446, x = 0.516, y = 0.287 },
     { max = 52, zone = "Un'Goro Crater", hub = "Marshal's Refuge", mapID = 1449, x = 0.446, y = 0.082 },
@@ -118,6 +118,47 @@ function Level.ContentLevel(step)
         return ZONE_LEVEL[step.zone]
     end
     return nil
+end
+
+-- Published levels. Used so a log row with no level still waits for the fast band.
+Level.KNOWN = {
+    ["defending the dead"] = { questLevel = 30, minLevel = 23 },
+    ["the broodmother"] = { questLevel = 31, minLevel = 23, elite = true },
+}
+
+function Level.FastQuest(questLevel, elite, minLevel)
+    local level = UnitLevel("player") or 1
+    if type(minLevel) == "number" and level < minLevel then
+        return false
+    end
+    if type(questLevel) ~= "number" or questLevel < 1 then
+        return true
+    end
+    if Level.IsGrey({ kind = "accept", questLevel = questLevel }) then
+        return false
+    end
+    local cap = level + 1
+    if elite then
+        cap = level
+    end
+    if questLevel > cap then
+        return false
+    end
+    if questLevel < level - 2 then
+        return false
+    end
+    return true
+end
+
+function Level.FastTitle(title, questLevel)
+    local known = title and Level.KNOWN[string.lower(title)]
+    local elite = known and known.elite or false
+    local minLevel = known and known.minLevel
+    local level = questLevel
+    if (type(level) ~= "number" or level < 1) and known then
+        level = known.questLevel
+    end
+    return Level.FastQuest(level, elite, minLevel)
 end
 
 function Level.IsGrey(step)
