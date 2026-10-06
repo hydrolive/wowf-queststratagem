@@ -304,6 +304,12 @@ When the level bar is about nine tenths full and the next level is even, or you 
 
 Lua files for this pass were parsed as Lua 5.1. The path order and the priest trainer step were executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.15
+
+A quest that was on the log and has since left it is listed above the starter chain and under the turn-ins from this session. Any other finished quest whose name the client returns joins that list. Starter quests stay at the top.
+
+Lua files for this pass were parsed as Lua 5.1. The path order was executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -353,4 +359,4 @@ Lua files for this pass were parsed as Lua 5.1. The path order and the priest tr
 - 2026-10-06: The yellow line follows the step on screen. Finished earlier steps show the ready-check icon. The first Back leaves the live step.
 - 2026-10-06: The fast band is two levels below through one level above. Elites wait until you reach their level. At 27 the road is Thousand Needles. Path shows that road as level/60.
 - 2026-10-06: Path is a percent of the road, about half at the end of level 27, one row per quest. Next on a flight assumes you have landed, and the arrow points at one overlapping camp.
-- 2026-10-06: The path puts recent turn-ins against the current step and leaves starter quests at the top. A class trainer follows the current camp when the next even level is close. The camp keeps the arrow until it is finished.
+- 2026-10-06: The path puts recent turn-ins against the current step and leaves starter quests at the top. A class trainer follows the current camp when the next even level is close. The camp keeps the arrow until it is finished. Quests that were on the log and have left it sit between those two.

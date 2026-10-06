@@ -1175,6 +1175,18 @@ function Resume.PathRows(route)
     local zones = (QS.char and QS.char.questZones) or {}
     local turnedIn = (QS.char and QS.char.turnedIn) or {}
     local seenTitles = (QS.char and QS.char.questSeen) or {}
+    local oldKey = {}
+    for i = 1, #steps do
+        local step = steps[i]
+        local old = step.starter or (QS.Level and QS.Level.IsGrey and QS.Level.IsGrey(step))
+        if old then
+            local title = step.questName or step.title
+            local norm = Resume.NormTitle(title)
+            if norm then
+                oldKey["t:" .. norm] = true
+            end
+        end
+    end
     for i = 1, #ids do
         local id = ids[i]
         local title = QS.Api and QS.Api.TitleFor and QS.Api.TitleFor(id)
@@ -1184,13 +1196,13 @@ function Resume.PathRows(route)
             if type(stamp) == "number" and stamp > 1 then
                 when = stamp
             end
-            local band = 0
-            local low = string.lower(title)
-            if when > 0 or seenTitles[low] then
-                band = 1
+            local key = keyFor(title, id)
+            local band = 1
+            if when == 0 and key and oldKey[key] then
+                band = 0
             end
             add({
-                key = keyFor(title, id),
+                key = key,
                 id = "done-" .. tostring(id),
                 title = title,
                 zone = zones[id],
@@ -1228,6 +1240,39 @@ function Resume.PathRows(route)
             local row = hist[i]
             if row and row.id and Resume.Done(row, log) then
                 consider(row, "done", { band = 1, when = 0, seq = 10000000 + i })
+            end
+        end
+    end
+
+    local function titleInLog(low)
+        for _, info in pairs(log.inLog or {}) do
+            if type(info.title) == "string" and string.lower(info.title) == low then
+                return true
+            end
+        end
+        return false
+    end
+    local function prettyTitle(low)
+        return (string.gsub(low, "(%a)([%w']*)", function(a, rest)
+            return string.upper(a) .. rest
+        end))
+    end
+    local seenN = 0
+    for low, on in pairs(seenTitles) do
+        if on == true and type(low) == "string" and low ~= "" and not titleInLog(low) then
+            local pretty = prettyTitle(low)
+            local key = keyFor(pretty, nil)
+            if key and not oldKey[key] then
+                seenN = seenN + 1
+                add({
+                    key = key,
+                    id = "seen-" .. low,
+                    title = pretty,
+                    state = "done",
+                    band = 1,
+                    when = 0,
+                    seq = 5000000 + seenN,
+                })
             end
         end
     end

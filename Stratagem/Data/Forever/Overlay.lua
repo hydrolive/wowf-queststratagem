@@ -1,4 +1,8 @@
 -- Stratagem changelog
+-- 0.1.15 (2026-10-06)
+-- Quests that were on the log and have left it sit above the starter
+-- chain, under the turn-ins from this session. A name the client returns
+-- for any other finished quest joins that list. Starters stay at the top.
 -- 0.1.14 (2026-10-06)
 -- The rows against the current step are quests turned in while Stratagem
 -- was running, then the steps it stored. Starter quests stay at the top.
