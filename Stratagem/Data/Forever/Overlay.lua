@@ -1,4 +1,7 @@
 -- Stratagem changelog
+-- 0.1.4 (2026-10-05)
+-- Load listens for the folder name Stratagem. 0.1.3 waited for QuestStratagem,
+-- so the window was never created and /qs and /stratagem did nothing.
 -- 0.1.3 (2026-10-05)
 -- The addon is Stratagem. The window title is Stratagem. Options opens the spec buttons.
 -- A profession trains only when the next rank is within 5 skill, and only at a real trainer pin.

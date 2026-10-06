@@ -8,8 +8,8 @@ Reference screenshots supplied 2026-10-05 (Bones). Match hierarchy and density. 
 - Left-drag on the title bar moves. Position saved.
 - Backdrop: dark stone, 1px gold edge, 4px corner. Classic-safe: `Interface\DialogFrame` pieces or a solid `0.10, 0.09, 0.08` fill plus gold `0.78, 0.62, 0.28` border. No retail-only atlas required.
 - Icon: 36px compass/arrow medallion overlapping the top-left corner, gold ring. Not a skull.
-- Title text: `QuestStratagem` in gold, centered. Small size may hide the title bar text but keeps the icon.
-- Close (X) hides the frame. Minimap button or `/qs` shows it. Minus is not a separate mode; right-click is the size cycle. A small size-cycle button may sit where Bones puts minus, for discoverability, and does the same thing as right-click.
+- Title text: `Stratagem` in gold, centered. Small size may hide the title bar text but keeps the icon.
+- Close (X) hides the frame. Minimap button, `/qs`, or `/stratagem` shows it. Minus is not a separate mode; right-click is the size cycle. A small size-cycle button may sit where Bones puts minus, for discoverability, and does the same thing as right-click.
 
 ## Size cycle
 

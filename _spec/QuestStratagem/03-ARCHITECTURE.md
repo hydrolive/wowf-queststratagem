@@ -4,7 +4,7 @@ Classic-lineage addon. Lua 5.1. No vendored libraries. If HereBeDragons-2.0 is a
 
 The planning TOC below the shipped list used Interface 11507 and a single Alliance file. That placeholder is retired. The running addon uses Interface 16001, copied from a working Forever addon.
 
-## Shipped TOC (0.1.3)
+## Shipped TOC (0.1.4)
 
 The addon folder is `Stratagem/`. `## Title` is Stratagem. `## IconTexture` is `Interface\AddOns\Stratagem\icon.tga`. Saved variable names are still `QuestStratagemDB` and `QuestStratagemCharDB`.
 
@@ -13,7 +13,7 @@ The addon folder is `Stratagem/`. `## Title` is Stratagem. `## IconTexture` is `
 ## Title: Stratagem
 ## Notes: Offline 1-60 stratagem for WoW Forever. Arrow, chains, BiS.
 ## Author: Stratagem
-## Version: 0.1.3
+## Version: 0.1.4
 ## IconTexture: Interface\AddOns\Stratagem\icon.tga
 ## SavedVariables: QuestStratagemDB
 ## SavedVariablesPerCharacter: QuestStratagemCharDB
@@ -74,7 +74,7 @@ Footer in the large window stays the data version from `QS.DATA_VERSION`: `Data 
 
 Registered with `pcall`, so a missing event name does not stop the addon.
 
-- `ADDON_LOADED` — init DB
+- `ADDON_LOADED` — init DB and the window when the argument is the folder name `Stratagem`. The old name `QuestStratagem` does not fire after the rename. Login and `/qs` also create the window if that event was missed.
 - `PLAYER_LOGIN`, `PLAYER_ENTERING_WORLD` — login, rebuild
 - `PLAYER_LEVEL_UP`, `QUEST_ACCEPTED`, `QUEST_TURNED_IN`, `QUEST_FINISHED`, `QUEST_LOG_UPDATE` — rebuild
 - `QUEST_REMOVED` — a leave without turn-in must not advance. A complete quest leaving the log is recorded as a turn-in.

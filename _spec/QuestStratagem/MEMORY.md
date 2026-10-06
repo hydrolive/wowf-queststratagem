@@ -214,6 +214,10 @@ The addon folder, TOC, and window title are Stratagem. Saved variables stay `Que
 - The quest log leads one area at a time, including the Elder Knowledge hand-in on the Elder Rise while you are in Thunder Bluff.
 - Lua files for this pass were parsed as Lua 5.1. The Thunder Bluff hand-in and the alchemy rank gate were executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.4
+
+`ADDON_LOADED` now matches the folder name `Stratagem`. 0.1.3 still compared it to `QuestStratagem`, so saved variables were never read, the window was never created, and `/qs` and `/stratagem` returned without showing anything. Login and the slash command also create the window if that event was missed. `/stratagem` is registered as its own first alias.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -253,3 +257,4 @@ The addon folder, TOC, and window title are Stratagem. Saved variables stay `Que
 - 2026-10-05: HereBeDragons is used only when another addon already loaded it. It is not vendored.
 - 2026-10-05: A level is the plan boundary. Grey quests drop out. The header estimates time to the next level, and the bar matches this level's XP. Missing mid-level quest ids stay missing; the step is a dungeon plus kills.
 - 2026-10-05: The addon name is Stratagem. The quest log picks one area at a time. A trainer step exists only for the next profession rank, and only with a real trainer pin.
+- 2026-10-05: `ADDON_LOADED` uses the folder name `Stratagem`. The Lua global stays `QuestStratagem`.

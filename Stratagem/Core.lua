@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.3"
+QS.VERSION = "0.1.4"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -81,7 +81,16 @@ local function FillDefaults(dst, src)
 end
 
 function QS:Print(msg)
-    DEFAULT_CHAT_FRAME:AddMessage("|cffFFD100QuestStratagem|r " .. tostring(msg))
+    DEFAULT_CHAT_FRAME:AddMessage("|cffFFD100Stratagem|r " .. tostring(msg))
+end
+
+function QS:EnsureReady()
+    if not QS.char then
+        QS:InitDB()
+    end
+    if QS.UI and not QS.UI.frame then
+        QS.UI:Init()
+    end
 end
 
 function QS:InitDB()
@@ -169,11 +178,8 @@ local function DiffTurnIns(now)
 end
 
 function QS:OnEvent(event, arg1, arg2)
-    if event == "ADDON_LOADED" and arg1 == "QuestStratagem" then
-        QS:InitDB()
-        if QS.UI and not QS.UI.frame then
-            QS.UI:Init()
-        end
+    if event == "ADDON_LOADED" and arg1 == "Stratagem" then
+        QS:EnsureReady()
         if UnitLevel("player") and UnitLevel("player") > 0 then
             QS.loggedIn = true
             QS.Config.GuessSpec(false)
@@ -186,6 +192,7 @@ function QS:OnEvent(event, arg1, arg2)
     end
     if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
         QS.loggedIn = true
+        QS:EnsureReady()
         QS.Config.GuessSpec(false)
         if QS.Api.QueryCompleted then
             QS.Api.QueryCompleted()
@@ -259,6 +266,7 @@ function QS:OnEvent(event, arg1, arg2)
 end
 
 function QS:Slash(msg)
+    QS:EnsureReady()
     msg = (msg or ""):lower()
     msg = msg:match("^%s*(.-)%s*$") or ""
     if msg == "" then
@@ -368,5 +376,11 @@ SafeRegister(frame, "CHAT_MSG_COMBAT_HOSTILE_DEATH")
 SLASH_QUESTSTRATAGEM1 = "/qs"
 SLASH_QUESTSTRATAGEM2 = "/stratagem"
 SlashCmdList["QUESTSTRATAGEM"] = function(msg)
+    QS:Slash(msg)
+end
+-- A second list entry keeps /stratagem on its own first alias. Some clients
+-- only hash SLASH_<NAME>1 when the list entry is assigned.
+SLASH_STRATAGEM1 = "/stratagem"
+SlashCmdList["STRATAGEM"] = function(msg)
     QS:Slash(msg)
 end
