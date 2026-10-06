@@ -1,8 +1,9 @@
 ## Interface: 16001
-## Title: QuestStratagem
+## Title: Stratagem
 ## Notes: Offline 1-60 stratagem for WoW Forever. Arrow, chains, BiS.
-## Author: QuestStratagem
-## Version: 0.1.2
+## Author: Stratagem
+## Version: 0.1.3
+## IconTexture: Interface\AddOns\Stratagem\icon.tga
 ## SavedVariables: QuestStratagemDB
 ## SavedVariablesPerCharacter: QuestStratagemCharDB
 ## OptionalDeps: Questie, TomTom
@@ -26,5 +27,6 @@ Data\Bis\Index.lua
 Router.lua
 Resume.lua
 Level.lua
+Area.lua
 Live.lua
 UI.lua

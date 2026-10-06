@@ -98,6 +98,18 @@ function Resume.Done(step, log)
         return true
     end
     local kind = step.kind
+    if kind == "area" then
+        local ids = step.questIDs
+        if not ids then
+            return false
+        end
+        for i = 1, #ids do
+            if log.inLog[ids[i]] then
+                return false
+            end
+        end
+        return true
+    end
     if kind == "kills" then
         local level = UnitLevel("player") or 1
         if level > (step.atLevel or level) then
@@ -401,6 +413,9 @@ function Resume.Status(step, log, measure)
     end
     if step.kind == "kills" then
         return "Kills"
+    end
+    if step.kind == "area" then
+        return step.areaTurnin and "Turn in" or "Area"
     end
     if step.kind == "talent" then
         return "Talent"

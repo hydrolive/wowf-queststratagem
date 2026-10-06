@@ -103,9 +103,7 @@ These orders are reported Classic leveling paths. They are not a sim and they ar
 
 Tracked skills: Herbalism, Mining, Skinning, Alchemy, Blacksmithing, Engineering, Enchanting, Leatherworking, Tailoring, Cooking, First Aid, Fishing. Defense and weapon skills are ignored.
 
-In a city, up to four of those get a step. Stormwind and Orgrimmar have a trainer pin. Other cities point at a reported center and the text says to ask a guard. Goals are the spell names for the current cap bracket: 75, 150, 225, or 300. Those lists are the leveling set, not the whole catalog.
-
-Away from a city, a trainer step appears only when rank is within 5 of the cap and the cap is still under 300. The arrow then points at Stormwind for Alliance or Orgrimmar for Horde.
+A trainer step appears only when the next rank is within 5 skill: Journeyman at 50, Expert at 125, Artisan at 200. The goal is that rank, not a list of recipes. Alchemy at 15/75 shows nothing, because Minor Healing Potion and the other apprentice recipes are already known and the trainer will not teach them yet. The arrow is used only when that city has a trainer row. Thunder Bluff alchemy is Bena Winterhoof in Bena's Alchemy on the middle rise, reported at 46.6, 33.2. A missing row does not point at the inn. Stormwind and Orgrimmar still have the full profession set. Other professions in Thunder Bluff do not have pins yet.
 
 A skill at 300/300 is silent. Next dismisses that city, profession, and bracket until the cap changes.
 
@@ -173,6 +171,19 @@ Back onto a grey or deferred step does not stick. Resume clears that manual hold
 
 Standing inside an instance still pulls that instance's unfinished bosses forward, including a dungeon this level deferred. Those fresh boss steps are not deferred.
 
+## Area focus
+
+`Area.Apply` runs after the live steps. Demo mode skips it. If the quest log has anything, those quests lead and a profession train step is removed for this rebuild.
+
+Quests are grouped by a known turn-in when we have one, otherwise by the zone header in the log. One group is the current area. The group in the zone you are standing in wins. A ready turn-in in that zone wins over open objectives. If nothing in your zone is open, the next area is a ready turn-in somewhere else, then the zone with the most open objectives. The window is that one area until those quests leave the log. The body says what the area is and what to look for. Quests in the same group list their kills, collects, and turn-ins together. A quest with a different turn-in is the next area, named in the body, and it does not take the arrow.
+
+Two Forever hand-ins are stored from public pages, matched by the quest title the log already shows:
+
+- Changing Tastes turns in to Borstan, upstairs in the meat hut in the Drag, Orgrimmar, reported at 57.3, 53.3. The meat is on the thicket raptors past the first boss, in Stalker's Thicket. Source: Warcraft Tavern, Excavation Site: Wetlands quests, 2026-10.
+- Elder Knowledge turns in to Bashana Runetotem, in a tent on the Elder Rise in Thunder Bluff, reported at 70.8, 33.7. That is not the inn on the lower rise. The same page reported that the follow-up, Earthen Echo, still asked for the Titan Relic. The step says to read the reward before flying to Mulgore.
+
+A log quest with no stored note uses its own objective text. The addon does not fetch comments while you play.
+
 ## Implemented in 0.1.1
 
 Shipped in the addon at version 0.1.1, Interface 16001, taken from a working Forever addon. The footer string is unchanged: `Data classic-1.12 + forever-2026-10-05`.
@@ -193,11 +204,21 @@ Shipped in the addon at version 0.1.2, Interface 16001. The footer string is unc
 - A level with no authored in-band quest keeps one dungeon and kill steps at that level's hub. It does not invent Thousand Needles, Barrens, or Hillsbrad quest ids.
 - Lua files for this pass were parsed as Lua 5.1, and the level-27 path was executed outside the client with stubbed unit functions. Nobody logged the addon into the Forever client during this pass.
 
+## Implemented in 0.1.3
+
+The addon folder, TOC, and window title are Stratagem. Saved variables stay `QuestStratagemDB` and `QuestStratagemCharDB` so an existing character keeps its data when the WTF file is copied to the new addon name. The footer string is unchanged.
+
+- Options opens the spec buttons for the detected class. `/qs` and `/stratagem` both open the addon.
+- The addon-list icon is `Stratagem/icon.tga`, a gold compass.
+- Profession training uses the rank gate above. Alchemy 15/75 does not point at an innkeeper.
+- The quest log leads one area at a time, including the Elder Knowledge hand-in on the Elder Rise while you are in Thunder Bluff.
+- Lua files for this pass were parsed as Lua 5.1. The Thunder Bluff hand-in and the alchemy rank gate were executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
 - Full optional boss lists, and Scarlet Monastery as separate wings.
-- Trainer pins for capitals other than Stormwind and Orgrimmar, and for towns that are not capitals.
+- Trainer pins for professions other than Alchemy in Thunder Bluff, and for capitals other than Stormwind and Orgrimmar. Do not point those at the inn.
 - Confirm inn coordinates other than Farley and Grosk. Confirm `GetBindLocation()` strings (`Stormwind City` versus `Trade District`, and the same for other cities). If `/qs api` prints a different bind string, the set-hearth step will not complete.
 - Re-check recipe reagent counts and the spell lists against a public spell page.
 - Dungeon entrance coordinates are reported. Confirm them before calling a pin exact.
@@ -231,3 +252,4 @@ Shipped in the addon at version 0.1.2, Interface 16001. The footer string is unc
 - 2026-10-05: TOC Interface is 16001, from a working Forever addon. The footer string stays `Data classic-1.12 + forever-2026-10-05`.
 - 2026-10-05: HereBeDragons is used only when another addon already loaded it. It is not vendored.
 - 2026-10-05: A level is the plan boundary. Grey quests drop out. The header estimates time to the next level, and the bar matches this level's XP. Missing mid-level quest ids stay missing; the step is a dungeon plus kills.
+- 2026-10-05: The addon name is Stratagem. The quest log picks one area at a time. A trainer step exists only for the next profession rank, and only with a real trainer pin.

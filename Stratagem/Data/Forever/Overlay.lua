@@ -1,4 +1,9 @@
--- QuestStratagem changelog
+-- Stratagem changelog
+-- 0.1.3 (2026-10-05)
+-- The addon is Stratagem. The window title is Stratagem. Options opens the spec buttons.
+-- A profession trains only when the next rank is within 5 skill, and only at a real trainer pin.
+-- Alchemy 15/75 no longer lists Minor Healing Potion or points at the inn.
+-- The quest log leads, one area at a time. Thunder Bluff turns Elder Knowledge in to Bashana Runetotem.
 -- 0.1.2 (2026-10-05)
 -- Grey quests drop out. The header estimates time to the next level.
 -- The bar matches this level's XP. A level with no authored quest keeps

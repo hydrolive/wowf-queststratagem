@@ -339,6 +339,8 @@ end
 
 function Api.ReadLog()
     local inLog = {}
+    local zones = {}
+    local current
     local n = Api.LogCount()
     for i = 1, n do
         local title, isHeader, isComplete, questID
@@ -351,14 +353,17 @@ function Api.ReadLog()
                 isComplete = info.isComplete
             end
         end
-        if not questID and GetQuestLogTitle then
+        if questID == nil and GetQuestLogTitle then
             local t, _, _, header, _, complete, _, qid = GetQuestLogTitle(i)
             title = t
             isHeader = header
             isComplete = complete
             questID = qid
         end
-        if questID and questID ~= 0 and not isHeader then
+        if isHeader then
+            current = { name = title or "Quests", quests = {} }
+            zones[#zones + 1] = current
+        elseif questID and questID ~= 0 then
             local complete = (isComplete == 1 or isComplete == true)
             if not complete and C_QuestLog and C_QuestLog.IsComplete then
                 local ok, v = pcall(C_QuestLog.IsComplete, questID)
@@ -366,15 +371,20 @@ function Api.ReadLog()
                     complete = true
                 end
             end
+            local zoneName = current and current.name or ""
             inLog[questID] = {
                 index = i,
                 title = title,
                 complete = complete,
+                zone = zoneName,
                 objectives = ReadObjectives(questID, i),
             }
+            if current then
+                current.quests[#current.quests + 1] = questID
+            end
         end
     end
-    return inLog
+    return inLog, zones
 end
 
 function Api.IsFlagged(questID)
@@ -436,8 +446,10 @@ end
 
 function Api.Snapshot()
     local turnedIn = (QS.char and QS.char.turnedIn) or {}
+    local inLog, zones = Api.ReadLog()
     return {
-        inLog = Api.ReadLog(),
+        inLog = inLog,
+        zones = zones or {},
         completed = Api.ReadCompleted(turnedIn),
     }
 end

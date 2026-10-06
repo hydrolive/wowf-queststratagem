@@ -64,7 +64,7 @@ Acceptance when this phase is finished:
 - Inside a dungeon each boss is its own goal step, not a quest and not a BiS check. The distance line shows the boss name.
 - A later session can tell shipped behavior from remaining work by reading MEMORY.md alone.
 
-Not done yet: interior boss pins, trainer pins outside Stormwind and Orgrimmar, verified reagent counts, the rest of the 1–60 quest spine (0.1.2 plans those levels as one dungeon plus kills, and says the quest ids are missing), and an in-game login. See Still todo.
+Not done yet: interior boss pins, trainer pins besides Alchemy in Thunder Bluff and the Stormwind and Orgrimmar sets, verified reagent counts, area notes for quests that are not Changing Tastes or Elder Knowledge, the rest of the 1–60 quest spine, and an in-game login. See Still todo.
 
 ## Out of phase
 

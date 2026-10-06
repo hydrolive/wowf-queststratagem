@@ -26,6 +26,7 @@ local TRAIN_NAMES = {
 local GATHER_KINDS = {
     accept = true, objective = true, turnin = true, travel = true,
     train = true, hearth = true, fly = true, dungeon = true, note = true,
+    area = true,
 }
 
 local function Data()
@@ -48,19 +49,6 @@ local function Capital(faction)
         return "Orgrimmar"
     end
     return "Stormwind City"
-end
-
-local function Bracket(maxRank)
-    if not maxRank or maxRank <= 75 then
-        return 75
-    end
-    if maxRank <= 150 then
-        return 150
-    end
-    if maxRank <= 225 then
-        return 225
-    end
-    return 300
 end
 
 local function CountOf(bags, itemID)
@@ -451,47 +439,57 @@ local function CraftStep(bags, char)
     return nil
 end
 
-local function TrainerStep(cityName, city, prof, skill, away)
-    local bracket = Bracket(skill.max)
-    local known = Data().spells[prof] and Data().spells[prof][bracket]
-    local row = Data().trainers[cityName] and Data().trainers[cityName][prof]
-    local npc = (row and row.npc) or ("the " .. prof .. " trainer")
-    local where = row and row.where
-    local goals = {}
-    if known then
-        for i = 1, #known do
-            goals[#goals + 1] = { name = known[i] }
-        end
+function Live.NextTrain(skill)
+    if not skill then
+        return nil
+    end
+    local maxRank = skill.max or 0
+    local rank = skill.rank or 0
+    local gate, name
+    if maxRank <= 75 then
+        gate, name = 50, "Journeyman"
+    elseif maxRank <= 150 then
+        gate, name = 125, "Expert"
+    elseif maxRank <= 225 then
+        gate, name = 200, "Artisan"
     else
-        goals[1] = { name = "Learn the next " .. prof .. " rank" }
+        return nil
     end
-    local text = "Train " .. prof .. " (" .. skill.rank .. "/" .. skill.max .. ") with " .. npc
-    if where then
-        text = text .. " in " .. where
+    if rank + 5 < gate then
+        return nil
     end
-    text = text .. ". The goals are the spells for this rank."
+    return name
+end
+
+local function TrainerStep(cityName, prof, skill, away, rankName)
+    local row = Data().trainers[cityName] and Data().trainers[cityName][prof]
     if not row then
-        text = text .. " Ask a guard for the trainer. The arrow points at the city."
+        return nil
     end
+    local text = "Train " .. rankName .. " " .. prof .. " (" .. skill.rank .. "/" .. skill.max .. ") with " .. row.npc
+    if row.where then
+        text = text .. " in " .. row.where
+    end
+    text = text .. ". Recipes you already know are not listed."
     if away then
-        text = "Your " .. prof .. " rank is full (" .. skill.rank .. "/" .. skill.max .. "). Go to " .. npc .. " in " .. cityName .. "."
+        text = "Your " .. prof .. " cap is " .. skill.rank .. "/" .. skill.max .. ". " .. row.npc .. " in " .. cityName .. " trains " .. rankName .. "."
     end
     return {
-        id = "dyn-train-" .. cityName .. "-" .. prof .. "-" .. bracket,
+        id = "dyn-train-" .. cityName .. "-" .. prof .. "-" .. rankName,
         kind = "proftrain",
         profession = prof,
         rankAt = skill.rank,
         maxAt = skill.max,
-        title = "Train " .. prof,
-        npc = npc,
+        title = "Train " .. rankName .. " " .. prof,
+        npc = row.npc,
         text = text,
         zone = cityName,
-        mapID = (row and row.mapID) or city.mapID,
-        x = (row and row.x) or city.x,
-        y = (row and row.y) or city.y,
+        mapID = row.mapID,
+        x = row.x,
+        y = row.y,
         pin = "approx",
         goalHeader = "Train",
-        goals = goals,
+        goals = { { name = "Train " .. rankName .. " " .. prof, have = 0, need = 1 } },
         minutes = away and 8 or 3,
         confidence = "reported",
         source = "classic-profession-2026-10-05",
@@ -745,30 +743,23 @@ function Live.Apply(built, identity, char, log)
     end
 
     if char.professionSteps then
-        local cityName, city = CurrentCity(place)
+        local cityName = CurrentCity(place)
         local skills = QS.Api.Skills()
         local trained = 0
         for i = 1, #skills do
             local skill = skills[i]
             local mastered = skill.max >= 300 and skill.rank >= skill.max
-            if TRAIN_NAMES[skill.name] and trained < 4 and not mastered then
-                local capped = skill.max < 300 and skill.rank + 5 >= skill.max
-                if city and cityName then
-                    local step = TrainerStep(cityName, city, skill.name, skill, false)
-                    if Show(char, step.id, true) then
-                        block[#block + 1] = step
-                        trained = trained + 1
-                    end
-                elseif capped then
-                    local capital = Capital(identity.faction)
-                    local capCity = Data().cities[capital]
-                    if capCity then
-                        local step = TrainerStep(capital, capCity, skill.name, skill, true)
-                        if Show(char, step.id, true) then
-                            block[#block + 1] = step
-                            trained = trained + 1
-                        end
-                    end
+            local rankName = Live.NextTrain(skill)
+            if TRAIN_NAMES[skill.name] and trained < 4 and not mastered and rankName then
+                local step
+                if cityName then
+                    step = TrainerStep(cityName, skill.name, skill, false, rankName)
+                else
+                    step = TrainerStep(Capital(identity.faction), skill.name, skill, true, rankName)
+                end
+                if step and Show(char, step.id, true) then
+                    block[#block + 1] = step
+                    trained = trained + 1
                 end
             end
         end

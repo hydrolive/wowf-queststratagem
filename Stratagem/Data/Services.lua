@@ -257,8 +257,9 @@ city("Booty Bay", nil, 1434, 0.266, 0.763)
 city("Gadgetzan", nil, 1446, 0.516, 0.287)
 city("Everlook", nil, 1452, 0.614, 0.387)
 
--- Stormwind and Orgrimmar trainers are the ones the starter routes can walk to.
--- Other capitals fall back to the city center and a guard line.
+-- A trainer step is created only when this table has a row for that city.
+-- Missing rows do not point at the inn. Thunder Bluff alchemy is Bena's hut
+-- on the middle rise, reported at 46.6, 33.2.
 local function trainer(cityName, prof, npc, x, y, where)
     local mapID = S.cities[cityName] and S.cities[cityName].mapID
     S.trainers[cityName] = S.trainers[cityName] or {}
@@ -290,6 +291,8 @@ trainer("Orgrimmar", "Enchanting", "Godan", 0.534, 0.384, "the Drag")
 trainer("Orgrimmar", "Cooking", "Zamja", 0.574, 0.536, "Valley of Spirits")
 trainer("Orgrimmar", "First Aid", "Arnok", 0.341, 0.844, "Valley of Spirits")
 trainer("Orgrimmar", "Fishing", "Lumak", 0.699, 0.294, "Valley of Honor")
+
+trainer("Thunder Bluff", "Alchemy", "Bena Winterhoof", 0.466, 0.332, "Bena's Alchemy on the middle rise")
 
 local function spells(prof, bracket, list)
     S.spells[prof] = S.spells[prof] or {}

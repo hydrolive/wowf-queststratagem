@@ -4,14 +4,17 @@ Classic-lineage addon. Lua 5.1. No vendored libraries. If HereBeDragons-2.0 is a
 
 The planning TOC below the shipped list used Interface 11507 and a single Alliance file. That placeholder is retired. The running addon uses Interface 16001, copied from a working Forever addon.
 
-## Shipped TOC (0.1.2)
+## Shipped TOC (0.1.3)
+
+The addon folder is `Stratagem/`. `## Title` is Stratagem. `## IconTexture` is `Interface\AddOns\Stratagem\icon.tga`. Saved variable names are still `QuestStratagemDB` and `QuestStratagemCharDB`.
 
 ```
 ## Interface: 16001
-## Title: QuestStratagem
+## Title: Stratagem
 ## Notes: Offline 1-60 stratagem for WoW Forever. Arrow, chains, BiS.
-## Author: QuestStratagem
-## Version: 0.1.2
+## Author: Stratagem
+## Version: 0.1.3
+## IconTexture: Interface\AddOns\Stratagem\icon.tga
 ## SavedVariables: QuestStratagemDB
 ## SavedVariablesPerCharacter: QuestStratagemCharDB
 ## OptionalDeps: Questie, TomTom
@@ -35,11 +38,12 @@ Data\Bis\Index.lua
 Router.lua
 Resume.lua
 Level.lua
+Area.lua
 Live.lua
 UI.lua
 ```
 
-`Data\Index.lua` loads before `Data\Services.lua` because Services writes `insideZone` onto the dungeon rows. `Live.lua` loads after `Resume.lua`. UI is last. `UI:Init` runs from Core after the saved variables exist, not at file load.
+`Data\Index.lua` loads before `Data\Services.lua` because Services writes `insideZone` onto the dungeon rows. `Area.lua` loads after `Level.lua` and before `Live.lua`. UI is last. `UI:Init` runs from Core after the saved variables exist, not at file load.
 
 Footer in the large window stays the data version from `QS.DATA_VERSION`: `Data classic-1.12 + forever-2026-10-05`. Do not change that string when the TOC version moves.
 

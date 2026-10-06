@@ -13,7 +13,8 @@
 7. Run precursor injection.
 8. Run cluster batching.
 9. Hand the list to Resume. Pull forward, then `Level.Apply` (skipped for the demo route).
-10. After the level plan, `Live.Apply` may copy steps to attach `extraGoals` and insert the town, talent, profession, and bag block. Choose the index after that. Demo mode skips step 10. Detail is in MEMORY.md, "Live guide" and "Level plan".
+10. After the level plan, `Live.Apply` may copy steps to attach `extraGoals` and insert the town, talent, profession, and bag block.
+11. `Area.Apply` then puts the quest-log area at the front and drops profession train steps for that rebuild. Demo mode skips Live and Area. Detail is in MEMORY.md, "Live guide", "Level plan", and "Area focus". Choose the index after that.
 
 ## Precursor injection
 
@@ -73,6 +74,7 @@ On load and on quest events:
    - `levelDefer` is set (another dungeon, or the unauthored next-band note, while this level has no in-band quest)
    - grey: player level minus content level is greater than the green range. Starter quests stay visible through the range. See MEMORY.md, "Level plan"
    - kills: the player has dinged past `atLevel`, or `UnitXP` has reached `xpMark` on that level. The last chunk has no mark and finishes on ding
+   - area: every quest id on the step has left the log
    - accept: questID in log or in completed
    - objective: completed flag, or log objective done
    - turnin: questID in completed (log presence does not count)

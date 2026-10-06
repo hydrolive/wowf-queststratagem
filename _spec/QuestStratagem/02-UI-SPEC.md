@@ -27,7 +27,8 @@ All three include the arrow. Font sizes do not jump so hard that the arrow moves
 
 Top block:
 
-- Status word: `Ready`, `Walking`, `In range`, `Turn in`, `Dungeon`, `Hearth`, `Talent`, `Train`, `Craft`, `Sell`, `Repair`, `Bank`, `Auction`, `Boss`, `Kills`, `Already done`, `BiS still missing`.
+- Window title: `Stratagem`.
+- Status word: `Ready`, `Walking`, `In range`, `Turn in`, `Area`, `Dungeon`, `Hearth`, `Talent`, `Train`, `Craft`, `Sell`, `Repair`, `Bank`, `Auction`, `Boss`, `Kills`, `Already done`, `BiS still missing`.
 - Subline: `Last leg: 40 min · +1,076 XP` using the previous completed step’s duration and XP delta.
 - Right side, stacked: `Next` and `Back` as small red-brown buttons. Not Ask.
 
@@ -85,7 +86,7 @@ Arrow and `194 yd` only. Tooltip on hover shows step title and zone so the tiny 
 
 ## Config popout
 
-`/qs config` or a gear on the large frame.
+`/qs config` or the Options button on the large frame. Options is where the spec is chosen. The three buttons are that class's talent trees.
 
 - Faction: detected, locked unless override (debug).
 - Race: detected.

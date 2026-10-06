@@ -2,7 +2,7 @@
 
 Offline 1–60 stratagem addon for WoW Forever. Arrow, distance, chains, resume, BiS. No AI.
 
-Planning pack dated 2026-10-05. The addon source is `QuestStratagem/` at version 0.1.2. What is designed, what is shipped, and what is left are in `MEMORY.md` under Live guide, Level plan, Implemented in 0.1.1, Implemented in 0.1.2, and Still todo.
+Planning pack dated 2026-10-05. The addon source is `Stratagem/` at version 0.1.3. What is designed, what is shipped, and what is left are in `MEMORY.md` under Live guide, Level plan, Area focus, Implemented in 0.1.1, Implemented in 0.1.2, Implemented in 0.1.3, and Still todo.
 
 ## Read first
 

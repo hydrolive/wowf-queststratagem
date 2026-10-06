@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.2"
+QS.VERSION = "0.1.3"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -129,6 +129,9 @@ function QS:Rebuild()
     end
     if QS.Live and QS.Live.Apply then
         QS.Live.Apply(built, id, QS.char, log)
+    end
+    if QS.Area and QS.Area.Apply then
+        QS.Area.Apply(built, QS.char, log)
     end
     local index = QS.Resume.Choose(built.steps, log, QS.char)
     local prevId = QS.route and QS.route.stepId
@@ -363,6 +366,7 @@ SafeRegister(frame, "GOSSIP_CLOSED")
 SafeRegister(frame, "CHAT_MSG_COMBAT_HOSTILE_DEATH")
 
 SLASH_QUESTSTRATAGEM1 = "/qs"
+SLASH_QUESTSTRATAGEM2 = "/stratagem"
 SlashCmdList["QUESTSTRATAGEM"] = function(msg)
     QS:Slash(msg)
 end
