@@ -97,9 +97,8 @@ Never point at an NPC for a quest in the completed set. If the only remaining st
 
 ## Next and Back
 
-- Next: mark current step id skipped, advance. Does not abandon.
-- Back: clear skip on previous step, set manual index there. If that quest is already turned in, Back still shows it but the status reads `Already done` and the next auto event will hop forward again unless the player is reading it.
-- X on the route row clears the skip on the current step only.
+- Next: mark the current step id skipped, remember it, and advance. An area step also skips the travel step for that same area. Does not abandon.
+- Back: clear the skip on the step Next last left, and hold the window there. That still works when the current step is the first row. If that quest is already turned in, Back still shows it but the status reads `Already done` and the next auto event will hop forward again unless the player is reading it.
 
 ## Clock
 

@@ -1,4 +1,9 @@
 -- Stratagem changelog
+-- 0.1.6 (2026-10-05)
+-- Earthen Echo points at Muln Earthfury on Skywatcher Plateau, northwest
+-- Mulgore, and stays there while you are still in Thunder Bluff.
+-- Next remembers the step. Back returns to it, including from a dungeon door.
+-- The Reroute button and the mark beside the percent are gone.
 -- 0.1.5 (2026-10-05)
 -- Talking to an NPC turns in a finished quest. The next quest is accepted when
 -- the route names it, or it is the only follow-up of a turn-in the route was on.

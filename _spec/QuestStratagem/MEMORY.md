@@ -175,12 +175,13 @@ Standing inside an instance still pulls that instance's unfinished bosses forwar
 
 `Area.Apply` runs after the live steps. Demo mode skips it. If the quest log has anything, those quests lead and a profession train step is removed for this rebuild.
 
-Quests are grouped by a known turn-in when we have one, otherwise by the zone header in the log. One group is the current area. The group in the zone you are standing in wins. A ready turn-in in that zone wins over open objectives. If nothing in your zone is open, the next area is a ready turn-in somewhere else, then the zone with the most open objectives. The window is that one area until those quests leave the log. The body says what the area is and what to look for. Quests in the same group list their kills, collects, and turn-ins together. A quest with a different turn-in is the next area, named in the body, and it does not take the arrow.
+Quests are grouped by a known turn-in when we have one, otherwise by the zone header in the log. One group is the current area. A ready turn-in in the zone you are standing in wins. Standing where you picked up a quest whose hand-in is somewhere else keeps that hand-in ahead of a different city's ready turn-in. The window stays on that quest until it leaves the log, unless you are standing in another zone that has its own ready turn-in. Next can leave the area. Back puts it back. The body says what the area is and what to look for. Quests in the same group list their kills, collects, and turn-ins together. A quest with a different turn-in is a goal line, `Still out: …`, and it does not take the arrow while this area is the one you are on.
 
-Two Forever hand-ins are stored from public pages, matched by the quest title the log already shows:
+Three Forever hand-ins are stored from public pages, matched by the quest title the log already shows:
 
 - Changing Tastes turns in to Borstan, upstairs in the meat hut in the Drag, Orgrimmar, reported at 57.3, 53.3. The meat is on the thicket raptors past the first boss, in Stalker's Thicket. Source: Warcraft Tavern, Excavation Site: Wetlands quests, 2026-10.
 - Elder Knowledge turns in to Bashana Runetotem, in a tent on the Elder Rise in Thunder Bluff, reported at 70.8, 33.7. That is not the inn on the lower rise. The same page reported that the follow-up, Earthen Echo, still asked for the Titan Relic. The step says to read the reward before flying to Mulgore.
+- Earthen Echo turns in to Muln Earthfury, in the biggest tent on Skywatcher Plateau, northwest Mulgore, reported at 33.4, 22.4. Climb from the north ridge, about 39.7, 16.9. Bashana Runetotem in Thunder Bluff only starts it. If the Titan Relic is missing, abandon Earthen Echo and accept it again from Bashana. She gives the relic back. Source: realmfirst.net dungeon quests, 2026-10-04, and the Wowhead Forever quest page. The step uses the quest id already in the log.
 
 A log quest with no stored note uses its own objective text. The addon does not fetch comments while you play.
 
@@ -230,6 +231,16 @@ The window no longer draws the corner medallion. The minimap button still uses t
 
 The current step with coordinates is one pin on the map. `C_Map.SetUserWaypoint` plus super-track when that map allows it. TomTom is the fallback and does not take the arrow. A step with no coordinates clears the pin this addon placed.
 
+## Implemented in 0.1.6
+
+Earthen Echo, after Bashana Runetotem gives it to you, points at Skywatcher Plateau. Walking around Thunder Bluff does not replace it with Changing Tastes in Orgrimmar. That hand-in stays on a goal line until you are in Orgrimmar, or until you press Next.
+
+Next remembers the step it skipped. Back returns to that step, including when the current row is a dungeon entrance and the skipped step is no longer the row above it. An area's travel step is skipped with it, so one Next leaves the whole area.
+
+The route row no longer has Reroute or the skip mark beside the percent. Next and Back stay. A reload clears area skips that were made before Back could return to them, so the plateau shows again after the previous Next.
+
+Lua files for this pass were parsed as Lua 5.1, and the Thunder Bluff, Orgrimmar, and Back path was executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -271,3 +282,4 @@ The current step with coordinates is one pin on the map. `C_Map.SetUserWaypoint`
 - 2026-10-05: The addon name is Stratagem. The quest log picks one area at a time. A trainer step exists only for the next profession rank, and only with a real trainer pin.
 - 2026-10-05: `ADDON_LOADED` uses the folder name `Stratagem`. The Lua global stays `QuestStratagem`.
 - 2026-10-05: NPC turn-ins are automatic. Accepts are limited to the route, one follow-up of a route turn-in, and a shared dungeon quest. The current step is a map pin. The window has no corner medallion.
+- 2026-10-05: A quest with its own destination stays until it leaves the log. Next can leave it, and Back returns to it. Earthen Echo goes to Muln Earthfury on Skywatcher Plateau.

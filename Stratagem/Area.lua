@@ -31,6 +31,21 @@ local PLACES = {
         note = "Beta reports said Earthen Echo still asks for the Titan Relic after this hand-in. Read the reward before you leave for Mulgore.",
         source = "warcrafttavern-forever-2026-10",
     },
+    ["earthen echo"] = {
+        npc = "Muln Earthfury",
+        zone = "Mulgore",
+        mapID = 1412,
+        x = 0.334,
+        y = 0.224,
+        placeName = "Skywatcher Plateau",
+        fromZone = "Thunder Bluff",
+        where = "the biggest tent on Skywatcher Plateau, northwest Mulgore",
+        watch = "Northwest Mulgore. Climb from 39.7, 16.9 to Skywatcher Plateau. Biggest tent.",
+        climb = "Climb from 39.7, 16.9, then the biggest tent.",
+        note = "Relic gone: abandon, accept again from Bashana. She returns it.",
+        noteGoal = true,
+        source = "realmfirst-2026-10-04",
+    },
 }
 
 local function PlaceFor(title)
@@ -122,30 +137,32 @@ local function Tally(cluster)
     return ready, open
 end
 
-local function Pick(clusters)
-    local best, bestScore
-    for i = 1, #clusters do
-        local cluster = clusters[i]
-        local ready, open = Tally(cluster)
-        if ready > 0 or open > 0 then
-            local here = ZoneHere(cluster.zone)
-            local score
-            if here and ready > 0 then
-                score = 3000 + ready
-            elseif here and open > 0 then
-                score = 2000 + open
-            elseif ready > 0 then
-                score = 1000 + ready
-            else
-                score = open
-            end
-            if not best or score > bestScore then
-                best = cluster
-                bestScore = score
-            end
+local function Score(cluster)
+    local ready, open = Tally(cluster)
+    if ready == 0 and open == 0 then
+        return nil
+    end
+    local place = cluster.place
+    local here = ZoneHere(cluster.zone)
+    local score
+    if here and ready > 0 then
+        score = 3000 + ready
+    elseif here and open > 0 then
+        score = 2000 + open
+    elseif place and open > 0 and not here then
+        score = 1500 + open
+    elseif ready > 0 then
+        score = 1000 + ready
+    else
+        score = open
+    end
+    if place and place.fromZone and place.zone ~= place.fromZone and ZoneHere(place.fromZone) then
+        local carried = 2500 + ready + open
+        if carried > score then
+            score = carried
         end
     end
-    return best
+    return score
 end
 
 local function Slug(text)
@@ -172,13 +189,102 @@ local function IdList(cluster)
     return ids, tail
 end
 
-local function Describe(cluster, others)
+local function ClusterStepIds(cluster)
+    local _, tail = IdList(cluster)
+    local slug = Slug(cluster.key)
+    return "dyn-area-" .. slug .. tail, "dyn-area-go-" .. slug .. tail
+end
+
+local function TagClusters(clusters)
+    for i = 1, #clusters do
+        local areaId, goId = ClusterStepIds(clusters[i])
+        clusters[i].areaId = areaId
+        clusters[i].goId = goId
+    end
+end
+
+local function Skipped(cluster, skips)
+    return skips[cluster.areaId] and true or false
+end
+
+local function StickyCluster(clusters, char, log, skips)
+    local prev = QS.route
+    if not prev or not prev.steps or not log then
+        return nil
+    end
+    local prevIds = {}
+    for i = 1, #prev.steps do
+        local step = prev.steps[i]
+        if step.kind == "area" and step.questIDs then
+            for q = 1, #step.questIDs do
+                prevIds[step.questIDs[q]] = true
+            end
+        end
+    end
+    for i = 1, #clusters do
+        local cluster = clusters[i]
+        if not Skipped(cluster, skips) then
+            for r = 1, #cluster.rows do
+                local id = cluster.rows[r].id
+                if prevIds[id] and log.inLog[id] then
+                    return cluster
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function Pick(clusters, char, log)
+    local skips = (char and char.skips) or {}
+    TagClusters(clusters)
+    local manual = char and char.manualStepId
+    local manualCluster
+    local best, bestScore
+    for i = 1, #clusters do
+        local cluster = clusters[i]
+        if manual and (manual == cluster.areaId or manual == cluster.goId) and not Skipped(cluster, skips) then
+            manualCluster = cluster
+        end
+        if not Skipped(cluster, skips) then
+            local score = Score(cluster)
+            if score and (not best or score > bestScore) then
+                best = cluster
+                bestScore = score
+            end
+        end
+    end
+    if manualCluster then
+        return manualCluster
+    end
+    local sticky = StickyCluster(clusters, char, log, skips)
+    if sticky then
+        for i = 1, #clusters do
+            local cluster = clusters[i]
+            if cluster ~= sticky and not Skipped(cluster, skips) then
+                local ready = Tally(cluster)
+                if ready > 0 and ZoneHere(cluster.zone) then
+                    return cluster
+                end
+            end
+        end
+        return sticky
+    end
+    return best
+end
+
+local function Describe(cluster, others, arrived)
     local place = cluster.place
     local ready, open = Tally(cluster)
     local text
-    if place and ready > 0 and open == 0 then
-        text = "Turn in to " .. place.npc .. " in " .. place.where .. ". " .. (place.watch or "")
-        if place.note then
+    if place and not arrived and place.placeName then
+        text = place.watch or ("Go to " .. place.placeName .. ". " .. place.npc .. " is in " .. place.where .. ".")
+    elseif place and ready > 0 and open == 0 then
+        text = "Turn in to " .. place.npc .. " in " .. place.where .. "."
+        if place.watch and not place.placeName then
+            text = text .. " " .. place.watch
+        end
+        if place.note and not place.noteGoal then
             text = text .. " " .. place.note
         end
     elseif place and open > 0 then
@@ -191,7 +297,7 @@ local function Describe(cluster, others)
     else
         text = "These quests overlap in " .. cluster.zone .. ". Kill, collect, and gather what is listed before you move on."
     end
-    if others then
+    if arrived and others then
         local extra = others[1]
         if extra then
             local who = (extra.place and extra.place.npc) or extra.zone
@@ -228,49 +334,78 @@ local function GoalsFor(cluster)
     return goals
 end
 
-local function OtherReady(clusters, chosen)
-    local out = {}
+local function BestOther(clusters, chosen)
+    local best, bestScore
     for i = 1, #clusters do
         local cluster = clusters[i]
         if cluster ~= chosen then
-            for n = 1, #cluster.rows do
-                local row = cluster.rows[n]
-                if row.complete then
-                    out[#out + 1] = {
-                        title = row.title,
-                        zone = cluster.zone,
-                        place = cluster.place,
-                    }
-                end
+            local score = Score(cluster)
+            if score and (not best or score > bestScore) then
+                best = cluster
+                bestScore = score
             end
         end
     end
-    return out
+    if not best or not best.rows[1] then
+        return nil
+    end
+    return {
+        title = best.rows[1].title,
+        zone = best.zone,
+        place = best.place,
+    }
 end
 
-local function AreaStep(cluster, ids, tail, here, others)
+local function AppendExtras(goals, cluster, others, arrived)
+    local place = cluster.place
+    if place and place.climb and place.placeName and not arrived then
+        table.insert(goals, 1, { name = place.climb, have = 0, need = 1 })
+    end
+    if place and place.noteGoal and place.note then
+        goals[#goals + 1] = { name = place.note, have = 0, need = 1 }
+    end
+    local extra = others and others[1]
+    if extra then
+        local whereName = extra.place and (extra.place.placeName or extra.place.zone) or extra.zone
+        goals[#goals + 1] = { name = "Still out: " .. extra.title .. " (" .. whereName .. ")", have = 0, need = 1 }
+    end
+    return goals
+end
+
+local function Arrived(cluster)
+    local place = cluster.place
+    if place and place.placeName then
+        return ZoneHere(place.placeName)
+    end
+    return ZoneHere(cluster.zone)
+end
+
+local function AreaStep(cluster, ids, tail, arrived, others)
     local place = cluster.place
     local ready, open = Tally(cluster)
     local title
-    if place and ready > 0 and open == 0 then
+    local atHandin = arrived and ready > 0 and open == 0
+    if place and place.placeName and not arrived then
+        title = "Go to " .. place.placeName
+    elseif place and ready > 0 and open == 0 then
         title = "Turn in to " .. place.npc
-    elseif here then
+    elseif arrived then
         title = cluster.zone
     else
         title = "Go to " .. cluster.zone
     end
     local step = {
-        id = "dyn-area-" .. Slug(cluster.key) .. tail,
+        id = cluster.areaId or ("dyn-area-" .. Slug(cluster.key) .. tail),
         cluster = "area-" .. Slug(cluster.zone),
         kind = "area",
-        areaTurnin = (ready > 0 and open == 0) or nil,
+        areaTurnin = atHandin or nil,
         title = title,
-        text = Describe(cluster, others),
+        text = Describe(cluster, others, arrived),
         zone = cluster.zone,
         questIDs = ids,
-        goalHeader = (ready > 0 and open == 0) and "Turn in" or "Area",
-        goals = GoalsFor(cluster),
-        minutes = here and 8 or 15,
+        goalHeader = atHandin and "Turn in" or "Area",
+        goals = AppendExtras(GoalsFor(cluster), cluster, others, arrived),
+        minutes = arrived and 8 or 15,
         confidence = place and "reported" or "log",
         source = (place and place.source) or "quest-log",
     }
@@ -293,13 +428,14 @@ function Area.Apply(built, char, log)
         return
     end
     local clusters = BuildClusters(rows)
-    local chosen = Pick(clusters)
+    local chosen = Pick(clusters, char, log)
     if not chosen then
         return
     end
     local ids, tail = IdList(chosen)
-    local here = ZoneHere(chosen.zone)
-    local others = OtherReady(clusters, chosen)
+    local arrived = Arrived(chosen)
+    local extra = BestOther(clusters, chosen)
+    local others = extra and { extra } or nil
     local steps = built.steps
     local kept = {}
     for i = 1, #steps do
@@ -308,14 +444,17 @@ function Area.Apply(built, char, log)
         end
     end
     local block = {}
-    if not here then
-        local place = chosen.place
+    local place = chosen.place
+    -- A named plateau stays on the area step, so a starter zone does not grey the walk.
+    if not arrived and not (place and place.placeName) then
+        local goals = GoalsFor(chosen)
+        table.insert(goals, 1, { name = "Arrive in " .. chosen.zone, have = 0, need = 1 })
         block[#block + 1] = {
-            id = "dyn-area-go-" .. Slug(chosen.key) .. tail,
+            id = chosen.goId or ("dyn-area-go-" .. Slug(chosen.key) .. tail),
             cluster = "area-" .. Slug(chosen.zone),
             kind = "travel",
             title = "Go to " .. chosen.zone,
-            text = Describe(chosen, others),
+            text = Describe(chosen, others, false),
             zone = chosen.zone,
             mapID = place and place.mapID or nil,
             x = place and place.x or nil,
@@ -324,20 +463,19 @@ function Area.Apply(built, char, log)
             npc = place and place.npc or nil,
             completeOnZone = chosen.zone,
             goalHeader = "Area",
-            goals = { { name = "Arrive in " .. chosen.zone, have = 0, need = 1 } },
+            goals = AppendExtras(goals, chosen, others, false),
             minutes = 15,
             confidence = place and "reported" or "log",
             source = (place and place.source) or "quest-log",
         }
     end
-    block[#block + 1] = AreaStep(chosen, ids, tail, here, others)
+    block[#block + 1] = AreaStep(chosen, ids, tail, arrived, others)
     for i = #block, 1, -1 do
         table.insert(kept, 1, block[i])
     end
     built.steps = kept
-    local place = chosen.place
     if place then
-        built.routeName = chosen.zone .. " · " .. place.npc
+        built.routeName = (place.placeName or chosen.zone) .. " · " .. place.npc
     else
         built.routeName = chosen.zone
     end

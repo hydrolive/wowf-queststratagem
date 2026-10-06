@@ -146,8 +146,6 @@ function UI:ApplySize()
     self.warning:SetShown(large)
     self.route:SetShown(large)
     self.indexText:SetShown(large)
-    self.rerouteBtn:SetShown(large)
-    self.unskipBtn:SetShown(large)
     self.body:SetShown(large)
     self.goalHeader:SetShown(large)
     self.footer:SetShown(large)
@@ -476,8 +474,6 @@ function UI:Refresh()
     else
         self.warning:Hide()
     end
-    local skipped = step and QS.char.skips[step.id]
-    self.unskipBtn.label:SetText(skipped and "X" or "·")
     self:PaintGoals(step, log)
     self.footer:SetText("Data " .. QS.DATA_VERSION)
 end
@@ -736,22 +732,11 @@ function UI:Init()
     self.route:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -114)
     self.route:SetTextColor(RGB(QS.COLOR.gold))
     self.route:SetJustifyH("LEFT")
-    self.route:SetWidth(250)
+    self.route:SetWidth(340)
 
-    self.unskipBtn = TextButton(frame, "X", 18, 16, 0.22, 0.16, 0.12)
-    self.unskipBtn:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -16, -112)
-    Click(self.unskipBtn, function()
-        QS.Resume.UnskipCurrent()
-    end)
-    self.rerouteBtn = TextButton(frame, "Reroute", 52, 16, 0.22, 0.16, 0.12)
-    self.rerouteBtn:SetPoint("RIGHT", self.unskipBtn, "LEFT", -4, 0)
-    Click(self.rerouteBtn, function()
-        QS.char.manualStepId = nil
-        QS.char.manualFrontierId = nil
-        QS:Rebuild()
-    end)
     self.indexText = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    self.indexText:SetPoint("RIGHT", self.rerouteBtn, "LEFT", -6, 0)
+    self.indexText:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -16, -112)
+    self.indexText:SetJustifyH("RIGHT")
     self.indexText:SetTextColor(RGB(QS.COLOR.muted))
 
     self.segments = CreateFrame("Frame", nil, frame)

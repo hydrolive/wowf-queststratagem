@@ -4,7 +4,7 @@ Classic-lineage addon. Lua 5.1. No vendored libraries. If HereBeDragons-2.0 is a
 
 The planning TOC below the shipped list used Interface 11507 and a single Alliance file. That placeholder is retired. The running addon uses Interface 16001, copied from a working Forever addon.
 
-## Shipped TOC (0.1.5)
+## Shipped TOC (0.1.6)
 
 The addon folder is `Stratagem/`. `## Title` is Stratagem. `## IconTexture` is `Interface\AddOns\Stratagem\icon.tga`. Saved variable names are still `QuestStratagemDB` and `QuestStratagemCharDB`.
 
@@ -13,7 +13,7 @@ The addon folder is `Stratagem/`. `## Title` is Stratagem. `## IconTexture` is `
 ## Title: Stratagem
 ## Notes: Offline 1-60 stratagem for WoW Forever. Arrow, chains, BiS.
 ## Author: Stratagem
-## Version: 0.1.5
+## Version: 0.1.6
 ## IconTexture: Interface\AddOns\Stratagem\icon.tga
 ## SavedVariables: QuestStratagemDB
 ## SavedVariablesPerCharacter: QuestStratagemCharDB
@@ -58,6 +58,7 @@ Footer in the large window stays the data version from `QS.DATA_VERSION`: `Data 
 - `spec` talent tree name, `specConfirmed` bool
 - `pace` = `guide|steady|first`
 - `skips` = `{ [stepId] = true }`
+- `stepBack` = list of `{ id, clear }`, newest last. Next pushes the step it left. Back pops it. Cap 20.
 - `manualStepId`, `manualFrontierId` — Back's hold. Not a numeric index.
 - `turnedIn` = `{ [questId] = time() }`
 - `legStart`, `lastLeg` = `{ seconds, xp }`, `totalSeconds`
@@ -111,7 +112,7 @@ Registered with `pcall`, so a missing event name does not stop the addon.
 - `/qs next` `/qs back`
 - `/qs config`
 - `/qs where`
-- `/qs reset` clears skips and the manual hold. It does not clear `turnedIn` or `bossDown`.
+- `/qs reset` clears skips, the back history, and the manual hold. It does not clear `turnedIn` or `bossDown`.
 - `/qs api`
 - `/qs size`
 - `/qs demo` toggles the fake route and skips Live

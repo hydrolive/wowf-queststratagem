@@ -318,6 +318,27 @@ function Resume.PullForward(steps, log, skips)
     end
 end
 
+local function IsAreaFamily(step)
+    local id = step and step.id
+    return type(id) == "string" and string.sub(id, 1, 9) == "dyn-area-"
+end
+
+local function RememberBack(char, shown, clear)
+    if type(char.stepBack) ~= "table" then
+        char.stepBack = {}
+    end
+    char.stepBack[#char.stepBack + 1] = { id = shown, clear = clear }
+    while #char.stepBack > 20 do
+        table.remove(char.stepBack, 1)
+    end
+end
+
+local function Hold(char, steps, log, id)
+    char.manualStepId = id
+    local frontier = Resume.FirstOpen(steps, log, char.skips)
+    char.manualFrontierId = frontier and steps[frontier] and steps[frontier].id or nil
+end
+
 function Resume.Next()
     local route = QS.route
     local char = QS.char
@@ -329,6 +350,17 @@ function Resume.Next()
         return
     end
     char.skips[step.id] = true
+    local clear = { step.id }
+    if IsAreaFamily(step) and step.cluster then
+        for i = 1, #route.steps do
+            local other = route.steps[i]
+            if other.id ~= step.id and other.cluster == step.cluster and IsAreaFamily(other) then
+                char.skips[other.id] = true
+                clear[#clear + 1] = other.id
+            end
+        end
+    end
+    RememberBack(char, step.id, clear)
     char.manualStepId = nil
     char.manualFrontierId = nil
     QS:Rebuild()
@@ -337,36 +369,55 @@ end
 function Resume.Back()
     local route = QS.route
     local char = QS.char
-    if not route or not route.index or route.index <= 1 or not char then
+    if not route or not char or not route.steps then
         return
     end
-    local prev = route.steps[route.index - 1]
-    char.skips[prev.id] = nil
     local log = route.log or QS.Api.Snapshot()
-    local frontier = Resume.FirstOpen(route.steps, log, char.skips)
-    char.manualStepId = prev.id
-    char.manualFrontierId = frontier and route.steps[frontier] and route.steps[frontier].id or nil
-    QS:Rebuild()
-end
-
-function Resume.UnskipCurrent()
-    local route = QS.route
-    local char = QS.char
-    if not route or not route.index or not char then
+    local hist = char.stepBack
+    if type(hist) == "table" and #hist > 0 then
+        local entry = hist[#hist]
+        hist[#hist] = nil
+        local id = entry
+        if type(entry) == "table" then
+            id = entry.id
+            local clear = entry.clear
+            if type(clear) == "table" then
+                for i = 1, #clear do
+                    char.skips[clear[i]] = nil
+                end
+            end
+        end
+        if id then
+            char.skips[id] = nil
+            Hold(char, route.steps, log, id)
+            QS:Rebuild()
+        end
         return
     end
-    local step = route.steps[route.index]
-    if step then
-        char.skips[step.id] = nil
+    local index = route.index or 1
+    for i = index - 1, 1, -1 do
+        local prev = route.steps[i]
+        if prev and char.skips[prev.id] and not prev.levelDefer and not (QS.Level and QS.Level.IsGrey(prev)) then
+            char.skips[prev.id] = nil
+            if IsAreaFamily(prev) and prev.cluster then
+                for n = 1, #route.steps do
+                    local other = route.steps[n]
+                    if other.cluster == prev.cluster and IsAreaFamily(other) then
+                        char.skips[other.id] = nil
+                    end
+                end
+            end
+            Hold(char, route.steps, log, prev.id)
+            QS:Rebuild()
+            return
+        end
     end
-    char.manualStepId = nil
-    char.manualFrontierId = nil
-    QS:Rebuild()
 end
 
 function Resume.Reset()
     local char = QS.char
     char.skips = {}
+    char.stepBack = {}
     char.manualStepId = nil
     char.manualFrontierId = nil
     QS:Print("Skips cleared. Resuming from the quest log.")

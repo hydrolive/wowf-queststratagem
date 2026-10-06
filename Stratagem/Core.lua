@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.5"
+QS.VERSION = "0.1.6"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -29,6 +29,7 @@ local CHAR_DEFAULTS = {
     specConfirmed = false,
     pace = "guide",
     skips = {},
+    stepBack = {},
     manualStepId = nil,
     manualFrontierId = nil,
     turnedIn = {},
@@ -98,10 +99,22 @@ function QS:InitDB()
     -- Phase A saved professionSteps = false before the field existed as a
     -- default. Read the revision before FillDefaults, which would stamp it.
     local hadRev = QuestStratagemCharDB and QuestStratagemCharDB.liveRev
+    local hadBack = QuestStratagemCharDB and type(QuestStratagemCharDB.stepBack) == "table"
     QuestStratagemDB = FillDefaults(QuestStratagemDB or {}, GLOBAL_DEFAULTS)
     QuestStratagemCharDB = FillDefaults(QuestStratagemCharDB or {}, CHAR_DEFAULTS)
     if type(QuestStratagemCharDB.skips) ~= "table" then
         QuestStratagemCharDB.skips = {}
+    end
+    if type(QuestStratagemCharDB.stepBack) ~= "table" then
+        QuestStratagemCharDB.stepBack = {}
+    end
+    -- 0.1.5 could skip an area with no way back. Those skips are not in stepBack.
+    if not hadBack then
+        for id in pairs(QuestStratagemCharDB.skips) do
+            if type(id) == "string" and string.sub(id, 1, 9) == "dyn-area-" then
+                QuestStratagemCharDB.skips[id] = nil
+            end
+        end
     end
     if type(QuestStratagemCharDB.turnedIn) ~= "table" then
         QuestStratagemCharDB.turnedIn = {}

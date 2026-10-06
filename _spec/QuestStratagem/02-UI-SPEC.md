@@ -38,8 +38,8 @@ Divider.
 
 Route row:
 
-- Yellow route name, e.g. `Barrens priority route`.
-- Right: `1/7`, a reroute button (recomputes frontier), an X that clears the manual skip on the current step (does not abandon the quest).
+- Yellow route name, e.g. `Skywatcher Plateau · Muln Earthfury`.
+- Right: the level percent (`50%`) while a level plan is showing, or `1/7` on the demo route. No Reroute button and no skip mark on this row.
 
 Segment bar: while a level plan exists, the slices are this level's XP. Gold width equals `UnitXP` / `UnitXPMax`. The remaining width is the quests, dungeon bosses, and kill chunks that finish the level. The first unfinished slice is bright. At most 16 slices. The route index is the percent (`50%`), so a character halfway from 27 to 28 shows a bar about half full. The demo route has no level plan and keeps the cluster bar: N segments for the current cluster, filled segments done, current segment bright.
 
