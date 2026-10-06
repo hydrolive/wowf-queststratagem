@@ -388,9 +388,9 @@ end
 
 function Bis.Inspect(linkOrID)
     if not linkOrID or linkOrID == "" or linkOrID == 0 or type(GetItemInfo) ~= "function" then
-        return {}, nil, 0, nil, nil, nil
+        return {}, nil, 0, nil, nil, nil, 0
     end
-    local name, _, _, iLevel, _, itemType, subType, _, equipLoc, texture = GetItemInfo(linkOrID)
+    local name, _, _, iLevel, _, itemType, subType, _, equipLoc, texture, sellPrice = GetItemInfo(linkOrID)
     local raw = nil
     local getter = GetItemStats
     if type(getter) ~= "function" and type(C_Item) == "table" and type(C_Item.GetItemStats) == "function" then
@@ -406,7 +406,7 @@ function Bis.Inspect(linkOrID)
     if itemType == "Armor" then
         armor = subType
     end
-    return Bis.NormalizeStats(raw), equipLoc, iLevel or 0, armor, texture, name
+    return Bis.NormalizeStats(raw), equipLoc, iLevel or 0, armor, texture, name, sellPrice or 0
 end
 
 local function ChoiceFromLink(index, name, texture, usable, link, itemID)
@@ -414,7 +414,7 @@ local function ChoiceFromLink(index, name, texture, usable, link, itemID)
         local id = string.match(link, "item:(%d+)")
         itemID = id and tonumber(id) or nil
     end
-    local stats, equipLoc, iLevel, armor, icon, inspected = Bis.Inspect(link or itemID)
+    local stats, equipLoc, iLevel, armor, icon, inspected, sellPrice = Bis.Inspect(link or itemID)
     if (not name or name == "") and type(inspected) == "string" and inspected ~= "" then
         name = inspected
     end
@@ -429,6 +429,7 @@ local function ChoiceFromLink(index, name, texture, usable, link, itemID)
         iLevel = iLevel,
         armor = armor,
         usable = usable,
+        sellPrice = sellPrice or 0,
     }
 end
 
@@ -512,9 +513,15 @@ function Bis.Equipped()
         local ok, link = pcall(GetInventoryItemLink, "player", slot)
         if ok and type(link) == "string" and link ~= "" then
             local stats, equipLoc, iLevel, armor, texture, name = Bis.Inspect(link)
+            local itemID = nil
+            local id = string.match(link, "item:(%d+)")
+            if id then
+                itemID = tonumber(id)
+            end
             out[slot] = {
                 name = name,
                 link = link,
+                itemID = itemID,
                 stats = stats,
                 equipLoc = equipLoc,
                 iLevel = iLevel,
@@ -628,7 +635,7 @@ function Bis.Choose(choices, equipped, ctx)
         end
     end
     if not best then
-        return nil
+        return Bis.VendorPick(choices)
     end
     local choice = best.choice
     local slotName = choice.equipLoc and SLOT_NAME[choice.equipLoc]
@@ -655,6 +662,23 @@ function Bis.Choose(choices, equipped, ctx)
         local close = second and second.tier == best.tier and (best.gain - second.gain) < 0.5
         take = not close
     end
+    if take then
+        return {
+            index = choice.index,
+            name = choice.name,
+            link = choice.link,
+            itemID = choice.itemID,
+            texture = choice.texture,
+            text = text,
+            gain = best.gain,
+            take = true,
+            equip = true,
+        }
+    end
+    local vendor = Bis.VendorPick(choices)
+    if vendor then
+        return vendor
+    end
     return {
         index = choice.index,
         name = choice.name,
@@ -663,8 +687,92 @@ function Bis.Choose(choices, equipped, ctx)
         texture = choice.texture,
         text = text,
         gain = best.gain,
-        take = take and true or false,
+        take = false,
+        equip = false,
     }
+end
+
+local function CoinText(copper)
+    copper = math.floor(copper or 0)
+    if copper < 0 then
+        copper = 0
+    end
+    local gold = math.floor(copper / 10000)
+    local silver = math.floor((copper % 10000) / 100)
+    local rest = copper % 100
+    local parts = {}
+    if gold > 0 then
+        parts[#parts + 1] = gold .. "g"
+    end
+    if silver > 0 then
+        parts[#parts + 1] = silver .. "s"
+    end
+    if rest > 0 or #parts == 0 then
+        parts[#parts + 1] = rest .. "c"
+    end
+    local text = ""
+    for i = 1, #parts do
+        if i > 1 then
+            text = text .. " "
+        end
+        text = text .. parts[i]
+    end
+    return text
+end
+
+function Bis.VendorPick(choices)
+    if not choices then
+        return nil
+    end
+    local best, price
+    for i = 1, #choices do
+        local choice = choices[i]
+        local sell = choice and choice.sellPrice or 0
+        if sell > 0 and (not price or sell > price) then
+            best = choice
+            price = sell
+        end
+    end
+    if not best then
+        return nil
+    end
+    return {
+        index = best.index,
+        name = best.name,
+        link = best.link,
+        itemID = best.itemID,
+        texture = best.texture,
+        text = "Vendor: " .. (best.name or "this reward") .. " — sells for " .. CoinText(price),
+        gain = 0,
+        take = true,
+        equip = false,
+        vendor = true,
+        sellPrice = price,
+    }
+end
+
+function Bis.Wearing(itemID, name)
+    if itemID and itemID ~= 0 and type(GetInventoryItemID) == "function" then
+        for slot = 1, 18 do
+            local ok, id = pcall(GetInventoryItemID, "player", slot)
+            if ok and id == itemID then
+                return true
+            end
+        end
+    end
+    local equipped = Bis.Equipped()
+    for slot = 1, 18 do
+        local item = equipped[slot]
+        if item then
+            if itemID and itemID ~= 0 and item.itemID == itemID then
+                return true
+            end
+            if name and item.name and string.lower(item.name) == string.lower(name) then
+                return true
+            end
+        end
+    end
+    return false
 end
 
 function Bis.Attach(step, log)

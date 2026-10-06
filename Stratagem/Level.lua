@@ -126,7 +126,9 @@ function Level.IsGrey(step)
     end
     local kind = step.kind
     if kind == "kills" or kind == "talent" or kind == "vendor" or kind == "craft"
-        or kind == "proftrain" or kind == "bank" or kind == "auction" or kind == "area" then
+        or kind == "proftrain" or kind == "bank" or kind == "auction" or kind == "area"
+        or kind == "flight" or kind == "weapon" or kind == "armor" or kind == "dual"
+        or kind == "opportunity" then
         return false
     end
     if kind == "hearth" and not step.questID then

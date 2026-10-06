@@ -1,4 +1,14 @@
 -- Stratagem changelog
+-- 0.1.8 (2026-10-05)
+-- A reward with no gear upgrade is the choice that vendors for the most.
+-- A gear winner adds an Equip objective, done when that item is worn.
+-- Finishing an objective plays a loot or quest-complete sound.
+-- Back reviews the last 20 steps stored on the character, and hides when
+-- there is nothing earlier. Next while reviewing moves forward, then back
+-- to the live step.
+-- Defending the Dead and The Broodmother from Muln Earthfury stay on the
+-- step. Flight paths, weapon trainers, The Islander, Dual Wield, plate or
+-- mail at 40, and dual spec at 40 are goals along the way.
 -- 0.1.7 (2026-10-05)
 -- A quest reward with several choices recommends the piece closest to the
 -- spec: a listed BiS item, or the best stat upgrade over what you have

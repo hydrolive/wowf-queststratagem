@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.7"
+QS.VERSION = "0.1.8"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -30,6 +30,10 @@ local CHAR_DEFAULTS = {
     pace = "guide",
     skips = {},
     stepBack = {},
+    history = {},
+    historyAt = nil,
+    flights = {},
+    questSeen = {},
     manualStepId = nil,
     manualFrontierId = nil,
     turnedIn = {},
@@ -108,6 +112,15 @@ function QS:InitDB()
     if type(QuestStratagemCharDB.stepBack) ~= "table" then
         QuestStratagemCharDB.stepBack = {}
     end
+    if type(QuestStratagemCharDB.history) ~= "table" then
+        QuestStratagemCharDB.history = {}
+    end
+    if type(QuestStratagemCharDB.flights) ~= "table" then
+        QuestStratagemCharDB.flights = {}
+    end
+    if type(QuestStratagemCharDB.questSeen) ~= "table" then
+        QuestStratagemCharDB.questSeen = {}
+    end
     -- 0.1.5 could skip an area with no way back. Those skips are not in stepBack.
     if not hadBack then
         for id in pairs(QuestStratagemCharDB.skips) do
@@ -156,7 +169,29 @@ function QS:Rebuild()
     if QS.Area and QS.Area.Apply then
         QS.Area.Apply(built, QS.char, log)
     end
+    QS.Resume.SeedHistory(QS.char, log)
+    local prevStep = QS.route and QS.route.index and QS.route.steps[QS.route.index]
+    if not QS.char.historyAt and prevStep then
+        QS.Resume.Remember(QS.char, prevStep)
+    end
     local index = QS.Resume.Choose(built.steps, log, QS.char)
+    if QS.char.historyAt and QS.char.history[QS.char.historyAt] then
+        local snap = QS.Resume.Snapshot(QS.char.history[QS.char.historyAt])
+        snap.review = true
+        local found = nil
+        for i = 1, #built.steps do
+            if built.steps[i].id == snap.id then
+                found = i
+            end
+        end
+        if not found then
+            table.insert(built.steps, 1, snap)
+            found = 1
+        else
+            built.steps[found] = snap
+        end
+        index = found
+    end
     local prevId = QS.route and QS.route.stepId
     QS.route = built
     QS.route.index = index
@@ -175,10 +210,149 @@ function QS:Rebuild()
     if QS.Pin and QS.Pin.Sync then
         QS.Pin.Sync(index and built.steps[index] or nil)
     end
+    QS:DiffEquip()
 end
 
 local function SafeRegister(frame, event)
     pcall(frame.RegisterEvent, frame, event)
+end
+
+local objReady = false
+local objState = {}
+local equipReady = false
+local equipState = {}
+
+local function PlayDone()
+    if type(PlaySoundFile) == "function" then
+        local ok, played = pcall(PlaySoundFile, "Sound\\Interface\\PickUp\\PickUpRing.ogg", "Master")
+        if ok and played then
+            return
+        end
+        ok, played = pcall(PlaySoundFile, "Sound\\Interface\\iQuestComplete.ogg", "Master")
+        if ok and played then
+            return
+        end
+    end
+    if type(PlaySound) == "function" and type(SOUNDKIT) == "table" and SOUNDKIT.QUEST_COMPLETED then
+        local ok, played = pcall(PlaySound, SOUNDKIT.QUEST_COMPLETED, "Master")
+        if ok and played ~= false then
+            return
+        end
+    end
+    if type(PlaySound) == "function" then
+        pcall(PlaySound, "QUESTCOMPLETED", "Master")
+    end
+end
+
+function QS:DiffEquip()
+    local step = QS.route and QS.route.index and QS.route.steps[QS.route.index]
+    local rows = step and step.rewardRows or {}
+    local nextState = {}
+    local ding = false
+    for i = 1, #rows do
+        local pick = rows[i]
+        if pick.equip and QS.Bis and QS.Bis.Wearing then
+            local key = tostring(pick.itemID or "") .. ":" .. tostring(pick.name or "")
+            local worn = QS.Bis.Wearing(pick.itemID, pick.name) and true or false
+            nextState[key] = worn
+            if equipReady and worn and equipState[key] == false then
+                ding = true
+            end
+        end
+    end
+    equipState = nextState
+    if not equipReady then
+        equipReady = true
+        return
+    end
+    if ding then
+        PlayDone()
+    end
+end
+
+local function DiffObjectives(inLog)
+    if QS.scanningLog or type(inLog) ~= "table" then
+        return
+    end
+    local nextState = {}
+    local ding = false
+    for id, info in pairs(inLog) do
+        local objs = info.objectives or {}
+        for i = 1, #objs do
+            local key = tostring(id) .. ":" .. i
+            local fin = objs[i].finished and true or false
+            nextState[key] = fin
+            if objReady and fin and objState[key] == false then
+                ding = true
+            end
+        end
+        local ckey = "c:" .. tostring(id)
+        local complete = info.complete and true or false
+        nextState[ckey] = complete
+        if objReady and complete and objState[ckey] == false then
+            ding = true
+        end
+    end
+    objState = nextState
+    if not objReady then
+        objReady = true
+        return
+    end
+    if ding then
+        PlayDone()
+    end
+end
+
+local function RecordFlights()
+    if not QS.char or type(NumTaxiNodes) ~= "function" or type(TaxiNodeName) ~= "function" then
+        return
+    end
+    if type(QS.char.flights) ~= "table" then
+        QS.char.flights = {}
+    end
+    local flights = QS.char.flights
+    local had = next(flights) ~= nil
+    local n = NumTaxiNodes() or 0
+    local changed = false
+    local addedCurrent = false
+    local function Mark(key)
+        if key and key ~= "" and not flights[key] then
+            flights[key] = true
+            changed = true
+        end
+    end
+    for i = 1, n do
+        local typ = "REACHABLE"
+        if type(TaxiNodeGetType) == "function" then
+            typ = TaxiNodeGetType(i)
+        end
+        local name = TaxiNodeName(i)
+        if type(name) == "string" and name ~= "" and (typ == "CURRENT" or typ == "REACHABLE") then
+            if not flights[name] then
+                flights[name] = true
+                changed = true
+                if typ == "CURRENT" then
+                    addedCurrent = true
+                end
+            end
+            if typ == "CURRENT" then
+                local zone = GetZoneText and GetZoneText() or ""
+                local real = GetRealZoneText and GetRealZoneText() or ""
+                local sub = GetSubZoneText and GetSubZoneText() or ""
+                Mark("zone:" .. zone)
+                if real ~= zone then
+                    Mark("zone:" .. real)
+                end
+                Mark("zone:" .. sub)
+            end
+        end
+    end
+    if addedCurrent and had then
+        PlayDone()
+    end
+    if changed then
+        QS:RequestRebuild()
+    end
 end
 
 local function OnQuestRemoved()
@@ -244,14 +418,18 @@ function QS:OnEvent(event, arg1, arg2)
             return
         end
         if event == "QUEST_LOG_UPDATE" or event == "QUEST_FINISHED" then
-            DiffTurnIns(QS.Api.ReadLog())
+            local now = QS.Api.ReadLog()
+            DiffTurnIns(now)
+            DiffObjectives(now)
         end
         QS:RequestRebuild()
         return
     end
     if event == "QUEST_REMOVED" then
         OnQuestRemoved()
-        DiffTurnIns(QS.Api.ReadLog())
+        local now = QS.Api.ReadLog()
+        DiffTurnIns(now)
+        DiffObjectives(now)
         QS:RequestRebuild()
         return
     end
@@ -282,6 +460,16 @@ function QS:OnEvent(event, arg1, arg2)
     end
     if event == "QUEST_QUERY_COMPLETE" then
         QS:RequestRebuild()
+        return
+    end
+    if event == "TAXIMAP_OPENED" then
+        RecordFlights()
+        return
+    end
+    if event == "UNIT_INVENTORY_CHANGED" then
+        if arg1 == "player" then
+            QS:RequestRebuild()
+        end
         return
     end
     if event == "PLAYER_XP_UPDATE" then
@@ -396,6 +584,8 @@ SafeRegister(frame, "AUCTION_HOUSE_CLOSED")
 SafeRegister(frame, "TRAINER_CLOSED")
 SafeRegister(frame, "GOSSIP_CLOSED")
 SafeRegister(frame, "CHAT_MSG_COMBAT_HOSTILE_DEATH")
+SafeRegister(frame, "TAXIMAP_OPENED")
+SafeRegister(frame, "UNIT_INVENTORY_CHANGED")
 
 SLASH_QUESTSTRATAGEM1 = "/qs"
 SLASH_QUESTSTRATAGEM2 = "/stratagem"

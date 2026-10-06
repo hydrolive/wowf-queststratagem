@@ -75,7 +75,9 @@ On load and on quest events:
    - grey: player level minus content level is greater than the green range. Starter quests stay visible through the range. See MEMORY.md, "Level plan"
    - kills: the player has dinged past `atLevel`, or `UnitXP` has reached `xpMark` on that level. The last chunk has no mark and finishes on ding
    - area: every quest id on the step has left the log
-   - accept: questID in log or in completed
+   - accept: questID in log or in completed. A step with a quest name and no id is done when the log shows that title
+   - flight: the taxi map has recorded that node, or the zone name, since this character opened a flight master. Opening the map is the only way to know a path is already learned. `kind` `fly` is still the old "enter the zone" step. Do not use it for learning a flight path
+   - weapon, armor, dual, and opportunity: not auto-done. Next dismisses that reminder. These do not go grey because of the zone's starter level
    - objective: completed flag, or log objective done
    - turnin: questID in completed (log presence does not count)
    - travel/fly/note: done only by Next, or by entering the target zone if `completeOnZone` set
@@ -97,8 +99,10 @@ Never point at an NPC for a quest in the completed set. If the only remaining st
 
 ## Next and Back
 
-- Next: mark the current step id skipped, remember it, and advance. An area step also skips the travel step for that same area. Does not abandon.
-- Back: clear the skip on the step Next last left, and hold the window there. That still works when the current step is the first row. If that quest is already turned in, Back still shows it but the status reads `Already done` and the next auto event will hop forward again unless the player is reading it.
+- The character stores the last 20 steps (`history`), including a step that auto-advanced because the quest left the log. The first rebuild after login does not invent a previous step. If Elder Knowledge, quest 95664, is already complete and the history is empty, one snapshot of the Bashana Runetotem turn-in is stored.
+- Next, while you are on the live step: mark the current step id skipped, remember it, and advance. An area step also skips the travel step for that same area. Does not abandon.
+- Back: show the previous stored step, even when that id is no longer in the built route. Status reads `Review`. The button is hidden when you are on the live step and the history is empty, or when you are already on the oldest stored step.
+- Next while reviewing walks toward the live step. It does not skip the quest you are actually on. The last Next in the history returns to that live step.
 
 ## Clock
 

@@ -46,6 +46,32 @@ local PLACES = {
         noteGoal = true,
         source = "realmfirst-2026-10-04",
     },
+    ["defending the dead"] = {
+        npc = "Muln Earthfury",
+        zone = "Mulgore",
+        mapID = 1412,
+        x = 0.334,
+        y = 0.224,
+        placeName = "Skywatcher Plateau",
+        fromZone = "Thunder Bluff",
+        where = "the biggest tent on Skywatcher Plateau, northwest Mulgore",
+        watch = "Muln Earthfury on Skywatcher Plateau. Level 30, same tent as Earthen Echo. No public quest id, so this matches the log title.",
+        source = "wowhead-forever-npc-259118",
+    },
+    ["the broodmother"] = {
+        npc = "Muln Earthfury",
+        zone = "Mulgore",
+        mapID = 1412,
+        x = 0.334,
+        y = 0.224,
+        placeName = "Skywatcher Plateau",
+        fromZone = "Thunder Bluff",
+        where = "the biggest tent on Skywatcher Plateau, northwest Mulgore",
+        watch = "Kill Broodmother Valraxx at Gloomrise. Bring help. Turn it in to Muln Earthfury. Gloomrise has no published pin.",
+        note = "Kill Broodmother Valraxx at Gloomrise. Bring help.",
+        noteGoal = true,
+        source = "wowhead-forever-96261",
+    },
 }
 
 local function PlaceFor(title)
@@ -369,6 +395,13 @@ local function AppendExtras(goals, cluster, others, arrived)
         local whereName = extra.place and (extra.place.placeName or extra.place.zone) or extra.zone
         goals[#goals + 1] = { name = "Still out: " .. extra.title .. " (" .. whereName .. ")", have = 0, need = 1 }
     end
+    local main = cluster.place
+    for i = 1, #cluster.rows do
+        local rowPlace = cluster.rows[i].place
+        if rowPlace and rowPlace ~= main and rowPlace.note then
+            goals[#goals + 1] = { name = rowPlace.note, have = 0, need = 1 }
+        end
+    end
     return goals
 end
 
@@ -419,6 +452,38 @@ local function AreaStep(cluster, ids, tail, arrived, others)
     return step
 end
 
+local function MergeTitles(step, extra)
+    if not extra then
+        return
+    end
+    local titles = step.acceptTitles or {}
+    local seen = {}
+    for i = 1, #titles do
+        seen[string.lower(titles[i])] = true
+    end
+    for i = 1, #extra do
+        local name = extra[i]
+        local key = string.lower(name)
+        if not seen[key] then
+            titles[#titles + 1] = name
+            seen[key] = true
+        end
+    end
+    if #titles > 0 then
+        step.acceptTitles = titles
+    end
+end
+
+local function CopyGoals(step, goals)
+    if not goals or #goals == 0 then
+        return
+    end
+    step.goals = step.goals or {}
+    for i = #goals, 1, -1 do
+        table.insert(step.goals, 1, goals[i])
+    end
+end
+
 function Area.Apply(built, char, log)
     if not built or not built.steps or not log or char.demo or built.key == "demo" then
         return
@@ -439,8 +504,10 @@ function Area.Apply(built, char, log)
     local steps = built.steps
     local kept = {}
     for i = 1, #steps do
-        if steps[i].kind ~= "proftrain" then
-            kept[#kept + 1] = steps[i]
+        local step = steps[i]
+        local liveNote = step.kind == "opportunity" and step.liveNote
+        if step.kind ~= "proftrain" and not liveNote then
+            kept[#kept + 1] = step
         end
     end
     local block = {}
@@ -470,11 +537,41 @@ function Area.Apply(built, char, log)
         }
     end
     block[#block + 1] = AreaStep(chosen, ids, tail, arrived, others)
+    local onMuln = place and place.npc == "Muln Earthfury"
+    local plateauSkipped = char.skips and char.skips["dyn-opportunity-plateau"]
+    if built.plateauLead and not onMuln and not plateauSkipped then
+        table.insert(block, 1, {
+            id = "dyn-opportunity-plateau",
+            kind = "opportunity",
+            title = "Skywatcher Plateau",
+            text = "Muln Earthfury still offers Defending the Dead and The Broodmother. Both are in range. The Broodmother is an elite at Gloomrise. Bring help. The pin is Muln. Gloomrise has no published coordinates.",
+            zone = "Mulgore",
+            mapID = 1412,
+            x = 0.334,
+            y = 0.224,
+            pin = "approx",
+            npc = "Muln Earthfury",
+            goalHeader = "Pick up",
+            goals = {},
+            minutes = 10,
+            confidence = "reported",
+            source = "wowhead-forever-npc-259118",
+        })
+    end
+    for i = 1, #block do
+        CopyGoals(block[i], built.opportunityGoals)
+        if (place and place.npc == "Muln Earthfury") or block[i].npc == "Muln Earthfury" then
+            MergeTitles(block[i], { "Defending the Dead", "The Broodmother" })
+        end
+        MergeTitles(block[i], built.acceptTitles)
+    end
     for i = #block, 1, -1 do
         table.insert(kept, 1, block[i])
     end
     built.steps = kept
-    if place then
+    if built.plateauLead and not onMuln and not plateauSkipped then
+        built.routeName = "Skywatcher Plateau · Muln Earthfury"
+    elseif place then
         built.routeName = (place.placeName or chosen.zone) .. " · " .. place.npc
     else
         built.routeName = chosen.zone

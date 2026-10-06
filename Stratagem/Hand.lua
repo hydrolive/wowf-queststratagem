@@ -2,8 +2,9 @@
 -- next quest only when this route names it, or it is the single follow-up
 -- of a turn-in this route was already on. A dungeon quest shared by a
 -- player is accepted on its own. A reward with several choices is taken
--- when the route names it, or one choice is a clear stat upgrade for the
--- spec. Hold Shift to leave the dialog alone.
+-- when the route names it, one choice is a clear stat upgrade for the
+-- spec, or, failing that, the choice that vendors for the most. Hold Shift
+-- to leave the dialog alone.
 
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
@@ -44,6 +45,14 @@ function Hand.OnRoute(route, questID, title)
         if name then
             if step.questName and string.lower(step.questName) == name then
                 return true
+            end
+            local titles = step.acceptTitles
+            if titles then
+                for t = 1, #titles do
+                    if string.lower(titles[t]) == name then
+                        return true
+                    end
+                end
             end
             local titled = step.kind == "accept" or step.kind == "turnin" or step.kind == "objective"
             if titled and step.title and string.lower(step.title) == name then

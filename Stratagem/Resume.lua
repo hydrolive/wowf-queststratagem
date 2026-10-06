@@ -32,6 +32,41 @@ local function InLog(log, questID)
     return questID and log.inLog[questID] ~= nil
 end
 
+local function TitleInLog(log, title)
+    if not title or not log or not log.inLog then
+        return false
+    end
+    local want = string.lower(title)
+    for _, info in pairs(log.inLog) do
+        if info.title and string.lower(info.title) == want then
+            return true
+        end
+    end
+    return false
+end
+
+function Resume.FlightKnown(char, label)
+    if not char or not label or type(char.flights) ~= "table" then
+        return false
+    end
+    if char.flights[label] then
+        return true
+    end
+    if char.flights["zone:" .. label] then
+        return true
+    end
+    local want = string.lower(label)
+    for name in pairs(char.flights) do
+        if type(name) == "string" then
+            local lower = string.lower(name)
+            if lower == want or string.find(lower, want, 1, true) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 local function ObjectiveDone(log, step)
     local questID = step.questID
     if QuestDone(log, questID) then
@@ -172,7 +207,19 @@ function Resume.Done(step, log)
         if step.questIDs then
             return AllLoggedOrDone(log, step.questIDs)
         end
+        if step.questName and TitleInLog(log, step.questName) then
+            return true
+        end
+        if not step.questID then
+            return false
+        end
         return InLog(log, step.questID) or QuestDone(log, step.questID)
+    end
+    if kind == "flight" then
+        return Resume.FlightKnown(QS.char, step.flight)
+    end
+    if kind == "weapon" or kind == "armor" or kind == "dual" or kind == "opportunity" then
+        return false
     end
     if kind == "objective" then
         return ObjectiveDone(log, step)
@@ -323,6 +370,67 @@ local function IsAreaFamily(step)
     return type(id) == "string" and string.sub(id, 1, 9) == "dyn-area-"
 end
 
+local SNAP_KEYS = {
+    "id", "title", "text", "zone", "mapID", "x", "y", "npc", "kind",
+    "questID", "questName", "cluster", "goalHeader", "areaTurnin",
+    "confidence", "where",
+}
+
+function Resume.Snapshot(step)
+    local copy = {}
+    for i = 1, #SNAP_KEYS do
+        local key = SNAP_KEYS[i]
+        copy[key] = step[key]
+    end
+    if step.goals then
+        copy.goals = {}
+        for i = 1, #step.goals do
+            local goal = step.goals[i]
+            copy.goals[i] = { name = goal.name, have = goal.have, need = goal.need }
+        end
+    end
+    if step.questIDs then
+        copy.questIDs = {}
+        for i = 1, #step.questIDs do
+            copy.questIDs[i] = step.questIDs[i]
+        end
+    end
+    return copy
+end
+
+function Resume.Remember(char, step)
+    if not char or not step or step.review or not step.id then
+        return
+    end
+    if type(char.history) ~= "table" then
+        char.history = {}
+    end
+    local last = char.history[#char.history]
+    if last and last.id == step.id then
+        return
+    end
+    local snap = Resume.Snapshot(step)
+    if char.pendingClear and char.pendingClear.id == step.id then
+        snap.clear = char.pendingClear.clear
+        char.pendingClear = nil
+    end
+    char.history[#char.history + 1] = snap
+    while #char.history > 20 do
+        table.remove(char.history, 1)
+    end
+end
+
+function Resume.CanBack(char)
+    char = char or QS.char
+    if not char or type(char.history) ~= "table" then
+        return false
+    end
+    if char.historyAt then
+        return char.historyAt > 1
+    end
+    return #char.history > 0
+end
+
 local function RememberBack(char, shown, clear)
     if type(char.stepBack) ~= "table" then
         char.stepBack = {}
@@ -339,10 +447,27 @@ local function Hold(char, steps, log, id)
     char.manualFrontierId = frontier and steps[frontier] and steps[frontier].id or nil
 end
 
+local ReleaseSkip
+
 function Resume.Next()
     local route = QS.route
     local char = QS.char
-    if not route or not route.index or not char then
+    if not char then
+        return
+    end
+    if char.historyAt then
+        if char.historyAt < #char.history then
+            char.historyAt = char.historyAt + 1
+            ReleaseSkip(char, char.history[char.historyAt])
+        else
+            char.historyAt = nil
+            char.manualStepId = nil
+            char.manualFrontierId = nil
+        end
+        QS:Rebuild()
+        return
+    end
+    if not route or not route.index then
         return
     end
     local step = route.steps[route.index]
@@ -361,63 +486,87 @@ function Resume.Next()
         end
     end
     RememberBack(char, step.id, clear)
+    char.pendingClear = { id = step.id, clear = clear }
+    char.historyAt = nil
     char.manualStepId = nil
     char.manualFrontierId = nil
     QS:Rebuild()
 end
 
+function ReleaseSkip(char, snap)
+    if not snap or type(snap.clear) ~= "table" then
+        return
+    end
+    for i = 1, #snap.clear do
+        char.skips[snap.clear[i]] = nil
+    end
+    char.manualStepId = snap.id
+end
+
 function Resume.Back()
-    local route = QS.route
     local char = QS.char
-    if not route or not char or not route.steps then
+    if not char or not Resume.CanBack(char) then
         return
     end
-    local log = route.log or QS.Api.Snapshot()
-    local hist = char.stepBack
-    if type(hist) == "table" and #hist > 0 then
-        local entry = hist[#hist]
-        hist[#hist] = nil
-        local id = entry
-        if type(entry) == "table" then
-            id = entry.id
-            local clear = entry.clear
-            if type(clear) == "table" then
-                for i = 1, #clear do
-                    char.skips[clear[i]] = nil
-                end
-            end
-        end
-        if id then
-            char.skips[id] = nil
-            Hold(char, route.steps, log, id)
-            QS:Rebuild()
-        end
+    if type(char.history) ~= "table" then
         return
     end
-    local index = route.index or 1
-    for i = index - 1, 1, -1 do
-        local prev = route.steps[i]
-        if prev and char.skips[prev.id] and not prev.levelDefer and not (QS.Level and QS.Level.IsGrey(prev)) then
-            char.skips[prev.id] = nil
-            if IsAreaFamily(prev) and prev.cluster then
-                for n = 1, #route.steps do
-                    local other = route.steps[n]
-                    if other.cluster == prev.cluster and IsAreaFamily(other) then
-                        char.skips[other.id] = nil
-                    end
-                end
-            end
-            Hold(char, route.steps, log, prev.id)
-            QS:Rebuild()
+    if not char.historyAt then
+        char.historyAt = #char.history
+    else
+        char.historyAt = char.historyAt - 1
+    end
+    ReleaseSkip(char, char.history[char.historyAt])
+    QS:Rebuild()
+end
+
+function Resume.SeedHistory(char, log)
+    if not char or char.reviewSeeded or not log then
+        return
+    end
+    local flagged = QS.Api and QS.Api.IsFlagged and QS.Api.IsFlagged(95664)
+    local known = (log.completed and log.completed[95664]) or flagged ~= nil
+    if not known then
+        return
+    end
+    char.reviewSeeded = true
+    if not (log.completed and log.completed[95664]) and flagged ~= true then
+        return
+    end
+    if type(char.history) ~= "table" then
+        char.history = {}
+    end
+    for i = 1, #char.history do
+        if char.history[i].id == "review-elder-knowledge" then
             return
         end
     end
+    char.history[#char.history + 1] = {
+        id = "review-elder-knowledge",
+        title = "Turn in to Bashana Runetotem",
+        text = "Elder Knowledge turns in at a tent on the Elder Rise in Thunder Bluff. That is not the inn on the lower rise.",
+        zone = "Thunder Bluff",
+        mapID = 1456,
+        x = 0.708,
+        y = 0.337,
+        npc = "Bashana Runetotem",
+        kind = "turnin",
+        questID = 95664,
+        questName = "Elder Knowledge",
+        goalHeader = "Turn in",
+        goals = { { name = "Turn in Elder Knowledge", have = 1, need = 1 } },
+        confidence = "reported",
+    }
 end
 
 function Resume.Reset()
     local char = QS.char
     char.skips = {}
     char.stepBack = {}
+    char.history = {}
+    char.historyAt = nil
+    char.pendingClear = nil
+    char.reviewSeeded = nil
     char.manualStepId = nil
     char.manualFrontierId = nil
     QS:Print("Skips cleared. Resuming from the quest log.")
@@ -454,6 +603,9 @@ end
 function Resume.Status(step, log, measure)
     if not step then
         return "Ready"
+    end
+    if step.review then
+        return "Review"
     end
     local char = QS.char
     if char and char.manualStepId == step.id and Resume.Done(step, log) then

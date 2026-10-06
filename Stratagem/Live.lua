@@ -29,6 +29,63 @@ local GATHER_KINDS = {
     area = true,
 }
 
+-- Classic skill-line names a class can learn from a weapon master.
+local CLASS_WEAPONS = {
+    WARRIOR = { "Axes", "Two-Handed Axes", "Swords", "Two-Handed Swords", "Maces", "Two-Handed Maces", "Daggers", "Fist Weapons", "Staves", "Polearms", "Bows", "Guns", "Crossbows", "Thrown" },
+    PALADIN = { "Swords", "Two-Handed Swords", "Maces", "Two-Handed Maces", "Polearms" },
+    HUNTER = { "Axes", "Two-Handed Axes", "Swords", "Two-Handed Swords", "Daggers", "Fist Weapons", "Staves", "Polearms", "Bows", "Guns", "Crossbows", "Thrown" },
+    ROGUE = { "Swords", "Maces", "Daggers", "Fist Weapons", "Bows", "Guns", "Crossbows", "Thrown" },
+    PRIEST = { "Maces", "Staves", "Daggers" },
+    MAGE = { "Swords", "Staves", "Daggers" },
+    WARLOCK = { "Swords", "Staves", "Daggers" },
+    SHAMAN = { "Axes", "Two-Handed Axes", "Maces", "Two-Handed Maces", "Staves", "Fist Weapons", "Daggers" },
+    DRUID = { "Maces", "Two-Handed Maces", "Staves", "Daggers", "Fist Weapons", "Polearms" },
+}
+
+-- Blizzard Watch, 2024-11-27. Coordinates are the classic city pins, not inns.
+local WEAPON_MASTERS = {
+    ["Orgrimmar"] = {
+        { npc = "Sayoc and Hanashi", where = "Valley of Honor (81, 19)", skills = { "Bows", "Daggers", "Fist Weapons", "Axes", "Staves", "Thrown", "Two-Handed Axes" } },
+    },
+    ["Undercity"] = {
+        { npc = "Archibald", where = "War Quarter (57, 32)", skills = { "Crossbows", "Daggers", "Swords", "Two-Handed Swords", "Polearms" } },
+    },
+    ["Thunder Bluff"] = {
+        { npc = "Ansekhwa", where = "central mesa, south-southwest of the pond (40, 63)", skills = { "Guns", "Maces", "Staves", "Two-Handed Maces" } },
+    },
+    ["Stormwind City"] = {
+        { npc = "Woo Ping", where = "Trade District, Weller's Arsenal (57, 57)", skills = { "Crossbows", "Daggers", "Swords", "Staves", "Two-Handed Swords", "Polearms" } },
+    },
+    ["Ironforge"] = {
+        { npc = "Bixi Wobblebonk and Buliwyf Stonehand", where = "Timberline Arms (61, 89)", skills = { "Crossbows", "Daggers", "Thrown", "Fist Weapons", "Guns", "Axes", "Two-Handed Axes", "Maces", "Two-Handed Maces" } },
+    },
+    ["Darnassus"] = {
+        { npc = "Ilyenia Moonfire", where = "Warrior's Terrace (57, 46)", skills = { "Bows", "Daggers", "Fist Weapons", "Staves", "Thrown" } },
+    },
+}
+
+local PLATEAU_OFFERS = {
+    {
+        title = "Defending the Dead",
+        minLevel = 23,
+        questLevel = 30,
+        faction = "Horde",
+        goal = "Accept Defending the Dead from Muln Earthfury",
+        text = "Muln Earthfury on Skywatcher Plateau offers Defending the Dead, a level 30 Mulgore quest.",
+        source = "wowhead-forever-npc-259118",
+    },
+    {
+        title = "The Broodmother",
+        questID = 96261,
+        minLevel = 23,
+        questLevel = 31,
+        faction = "Horde",
+        goal = "Accept The Broodmother (elite, Gloomrise, bring help)",
+        text = "Muln Earthfury offers The Broodmother. Kill Broodmother Valraxx at Gloomrise and bring help. The pin stays on Muln.",
+        source = "wowhead-forever-96261",
+    },
+}
+
 local function Data()
     return QS.Services
 end
@@ -707,6 +764,324 @@ local function SurfaceBosses(steps, char, log)
     end
 end
 
+local function SlugId(text)
+    local s = string.lower(text or "step")
+    s = string.gsub(s, "[^%w]+", "-")
+    s = string.gsub(s, "^-+", "")
+    s = string.gsub(s, "-+$", "")
+    if s == "" then
+        s = "step"
+    end
+    return s
+end
+
+local function JoinWords(list, limit)
+    local show = #list
+    if show > limit then
+        show = limit
+    end
+    local text = ""
+    for i = 1, show do
+        if i > 1 then
+            text = text .. ", "
+        end
+        text = text .. list[i]
+    end
+    if #list > limit then
+        text = text .. " +" .. (#list - limit)
+    end
+    return text
+end
+
+local function InColor(level, questLevel, minLevel)
+    if level < (minLevel or 1) then
+        return false
+    end
+    local span = 8
+    if QS.Level and QS.Level.GreenRange then
+        span = QS.Level.GreenRange(level)
+    end
+    return (level - questLevel) <= span
+end
+
+local function KnownSkills()
+    if type(GetNumSkillLines) ~= "function" or type(GetSkillLineInfo) ~= "function" then
+        return nil
+    end
+    if (GetNumSkillLines() or 0) < 1 then
+        return nil
+    end
+    local known = {}
+    local skills = QS.Api.Skills()
+    for i = 1, #skills do
+        known[skills[i].name] = true
+    end
+    return known
+end
+
+local function KnowsSpell(name)
+    if type(GetNumSpellTabs) ~= "function" or type(GetSpellTabInfo) ~= "function" or type(GetSpellBookItemName) ~= "function" then
+        return nil
+    end
+    local tabs = GetNumSpellTabs() or 0
+    if tabs < 1 then
+        return nil
+    end
+    local book = BOOKTYPE_SPELL or "spell"
+    for t = 1, tabs do
+        local _, _, offset, numSpells = GetSpellTabInfo(t)
+        offset = offset or 0
+        numSpells = numSpells or 0
+        for i = offset + 1, offset + numSpells do
+            if GetSpellBookItemName(i, book) == name then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function HasDualSpec()
+    if type(GetNumSpecGroups) ~= "function" then
+        return nil
+    end
+    local ok, n = pcall(GetNumSpecGroups)
+    if not ok or type(n) ~= "number" then
+        return nil
+    end
+    return n >= 2
+end
+
+local function TitleLogged(log, title)
+    if not log or not log.inLog or not title then
+        return false
+    end
+    local want = string.lower(title)
+    for _, info in pairs(log.inLog) do
+        if info.title and string.lower(info.title) == want then
+            return true
+        end
+    end
+    return false
+end
+
+local function QuestFinished(log, questID)
+    if not questID or not log then
+        return false
+    end
+    if log.completed and log.completed[questID] then
+        return true
+    end
+    if QS.Api and QS.Api.NoteIfFlagged then
+        return QS.Api.NoteIfFlagged(log, questID) and true or false
+    end
+    return false
+end
+
+local function RememberTitles(char, log)
+    if type(char.questSeen) ~= "table" then
+        char.questSeen = {}
+    end
+    for _, info in pairs(log.inLog or {}) do
+        if info.title then
+            char.questSeen[string.lower(info.title)] = true
+        end
+    end
+end
+
+local function AddGoal(goals, name)
+    if #goals >= 6 then
+        return
+    end
+    goals[#goals + 1] = { name = name, have = 0, need = 1 }
+end
+
+local function HashGoals(goals)
+    local n = 0
+    for i = 1, #goals do
+        local name = goals[i].name or ""
+        for c = 1, #name do
+            n = (n * 33 + string.byte(name, c)) % 100000
+        end
+    end
+    return string.format("%05d", n)
+end
+
+local function OnPlateau(place)
+    if not place then
+        return false
+    end
+    local function hit(name)
+        return name == "Mulgore" or name == "Thunder Bluff" or name == "Skywatcher Plateau"
+    end
+    return hit(place.zone) or hit(place.sub) or hit(place.real)
+end
+
+function Live.Opportunities(identity, char, log, place)
+    local goals, titles, tails, plateauGoals = {}, {}, {}, {}
+    if not char or not log then
+        return goals, titles, tails, false, plateauGoals
+    end
+    RememberTitles(char, log)
+    local level = UnitLevel("player") or 1
+    local faction = identity and identity.faction or ""
+    local classFile = identity and identity.classFile or ""
+    for i = 1, #PLATEAU_OFFERS do
+        local offer = PLATEAU_OFFERS[i]
+        local open = true
+        if offer.faction and offer.faction ~= faction then
+            open = false
+        end
+        if open and not InColor(level, offer.questLevel, offer.minLevel) then
+            open = false
+        end
+        if open and offer.questID and QuestFinished(log, offer.questID) then
+            open = false
+        end
+        if open and TitleLogged(log, offer.title) then
+            open = false
+        end
+        if open and not offer.questID and char.questSeen[string.lower(offer.title)] then
+            open = false
+        end
+        if open then
+            titles[#titles + 1] = offer.title
+            plateauGoals[#plateauGoals + 1] = { name = offer.goal, have = 0, need = 1 }
+            AddGoal(goals, offer.goal)
+            tails[#tails + 1] = {
+                id = "dyn-accept-" .. SlugId(offer.title),
+                kind = "accept",
+                title = offer.title,
+                questName = offer.title,
+                questID = offer.questID,
+                questLevel = offer.questLevel,
+                text = offer.text,
+                zone = "Mulgore",
+                mapID = 1412,
+                x = 0.334,
+                y = 0.224,
+                pin = "approx",
+                npc = "Muln Earthfury",
+                goalHeader = "Pick up",
+                goals = { { name = offer.goal, have = 0, need = 1 } },
+                minutes = 8,
+                confidence = "reported",
+                source = offer.source,
+            }
+        end
+    end
+    local function NeedFlight(label, text, pin)
+        if QS.Resume and QS.Resume.FlightKnown and QS.Resume.FlightKnown(char, label) then
+            return
+        end
+        AddGoal(goals, text)
+        if not pin then
+            return
+        end
+        tails[#tails + 1] = {
+            id = "dyn-flight-" .. SlugId(label),
+            kind = "flight",
+            flight = label,
+            title = "Flight path, " .. label,
+            text = text,
+            zone = pin.zone,
+            mapID = pin.mapID,
+            x = pin.x,
+            y = pin.y,
+            pin = "approx",
+            npc = "the flight master",
+            goalHeader = "Flight",
+            goals = { { name = text, have = 0, need = 1 } },
+            minutes = 3,
+            confidence = "reported",
+            source = "classicwowforever-2026-09-27",
+        }
+    end
+    local zone = place and (place.zone or "") or ""
+    local sub = place and (place.sub or "") or ""
+    local real = place and (place.real or "") or ""
+    if zone == "Mulgore" or sub == "Skywatcher Plateau" or real == "Mulgore" or #plateauGoals > 0 then
+        NeedFlight("Skywatcher Plateau", "Get the Skywatcher Plateau flight path from the flight master (34.3, 25.8)", {
+            zone = "Mulgore", mapID = 1412, x = 0.343, y = 0.258,
+        })
+    end
+    local cityName = place and CurrentCity(place) or nil
+    if cityName then
+        NeedFlight(cityName, "Get the " .. cityName .. " flight path", nil)
+    end
+    if char.classQuests ~= false and classFile == "WARRIOR" and InColor(level, 30, 30) then
+        local title = "The Islander"
+        if not TitleLogged(log, title) and not char.questSeen[string.lower(title)] then
+            local who = "Kelv Sternhammer in Ironforge, Wu Shen in Stormwind, or Darnath Bladesinger in Darnassus"
+            if faction == "Horde" then
+                who = "Sorek in Orgrimmar, Torm Ragetotem in Thunder Bluff, or Baltus Fowler in Undercity"
+            end
+            local goal = "Accept The Islander (" .. who .. ")"
+            AddGoal(goals, goal)
+            titles[#titles + 1] = title
+            tails[#tails + 1] = {
+                id = "dyn-accept-the-islander",
+                kind = "accept",
+                title = title,
+                questName = title,
+                questLevel = 30,
+                text = "The Islander starts at level 30 with a warrior trainer. " .. who .. ".",
+                goalHeader = "Pick up",
+                goals = { { name = goal, have = 0, need = 1 } },
+                minutes = 10,
+                confidence = "reported",
+                source = "wowforever-codex-2026-10-05",
+            }
+        end
+    end
+    local known = KnownSkills()
+    local allowed = CLASS_WEAPONS[classFile]
+    local masters = cityName and WEAPON_MASTERS[cityName]
+    if masters and known and allowed then
+        local allow = {}
+        for i = 1, #allowed do
+            allow[allowed[i]] = true
+        end
+        for m = 1, #masters do
+            local master = masters[m]
+            local missing = {}
+            local pole = false
+            for s = 1, #master.skills do
+                local skill = master.skills[s]
+                if allow[skill] and not known[skill] then
+                    missing[#missing + 1] = skill
+                    if skill == "Polearms" then
+                        pole = true
+                    end
+                end
+            end
+            if #missing > 0 then
+                local line = "Weapon skills, " .. master.npc .. ", " .. master.where .. ": " .. JoinWords(missing, 4) .. ". 10 silver each"
+                if pole then
+                    line = line .. ". Polearms cost 1 gold"
+                end
+                AddGoal(goals, line)
+            end
+        end
+    end
+    if known and level >= 40 then
+        if (classFile == "WARRIOR" or classFile == "PALADIN") and not known["Plate Mail"] then
+            AddGoal(goals, "Train Plate Mail at your class trainer")
+        elseif (classFile == "HUNTER" or classFile == "SHAMAN") and not known["Mail"] then
+            AddGoal(goals, "Train Mail at your class trainer")
+        end
+    end
+    if classFile == "WARRIOR" and level >= 20 then
+        if KnowsSpell("Dual Wield") == false then
+            AddGoal(goals, "Train Dual Wield at your class trainer")
+        end
+    end
+    if level >= 40 and HasDualSpec() ~= true then
+        AddGoal(goals, "Buy a second specialization from your class trainer (50 gold)")
+    end
+    return goals, titles, tails, OnPlateau(place) and #plateauGoals > 0, plateauGoals
+end
+
 function Live.Apply(built, identity, char, log)
     if not built or char.demo or not Data() then
         return
@@ -826,6 +1201,41 @@ function Live.Apply(built, identity, char, log)
 
     for i = #block, 1, -1 do
         table.insert(steps, index, block[i])
+    end
+
+    local goals, titles, tails, plateauLead, plateauGoals = Live.Opportunities(identity, char, log, place)
+    built.opportunityGoals = goals
+    built.acceptTitles = titles
+    built.plateauLead = plateauLead
+    if #goals > 0 then
+        local note = {
+            id = "dyn-opportunity-" .. HashGoals(goals),
+            liveNote = true,
+            kind = "opportunity",
+            title = "While you are here",
+            text = "Flight paths, training, and quests that are easy to miss. Next leaves this list.",
+            acceptTitles = titles,
+            goalHeader = "Don't miss",
+            goals = goals,
+            minutes = 5,
+            confidence = "reported",
+            source = "design-2026-10-05",
+        }
+        if plateauGoals and #plateauGoals > 0 then
+            note.title = "Skywatcher Plateau"
+            note.text = "Muln Earthfury offers Defending the Dead and The Broodmother. The Broodmother is an elite at Gloomrise. Bring help. The pin is Muln."
+            note.zone = "Mulgore"
+            note.mapID = 1412
+            note.x = 0.334
+            note.y = 0.224
+            note.pin = "approx"
+            note.npc = "Muln Earthfury"
+        end
+        local spot = QS.Resume.FirstOpen(steps, log, char.skips) or (#steps + 1)
+        table.insert(steps, spot, note)
+    end
+    for i = 1, #tails do
+        steps[#steps + 1] = tails[i]
     end
     SurfaceBosses(steps, char, log)
 end

@@ -142,7 +142,7 @@ function UI:ApplySize()
     self.goal:SetShown(large)
     self.goalHit:SetShown(large)
     self.nextBtn:SetShown(large)
-    self.backBtn:SetShown(large)
+    self:ApplyBack()
     self.warning:SetShown(large)
     self.route:SetShown(large)
     self.indexText:SetShown(large)
@@ -403,6 +403,15 @@ local function RowTexture(src)
     return nil
 end
 
+function UI:ApplyBack()
+    if not self.backBtn then
+        return
+    end
+    local large = ((QS.char and QS.char.size) or "large") == "large"
+    local show = large and QS.Resume and QS.Resume.CanBack and QS.Resume.CanBack(QS.char)
+    self.backBtn:SetShown(show and true or false)
+end
+
 function UI:FitGoals(shown)
     if not self.frame then
         return
@@ -452,6 +461,17 @@ function UI:PaintGoals(step, log)
             itemID = pick.itemID,
             texture = pick.texture,
         }
+        if pick.equip and pick.name and QS.Bis and QS.Bis.Wearing then
+            local worn = QS.Bis.Wearing(pick.itemID, pick.name)
+            rows[#rows + 1] = {
+                name = "Equip " .. pick.name,
+                count = worn and "1/1" or "0/1",
+                bis = true,
+                link = pick.link,
+                itemID = pick.itemID,
+                texture = pick.texture,
+            }
+        end
     end
     if QS.char and QS.char.size ~= "large" then
         self.goalHeader:Hide()
@@ -587,6 +607,7 @@ function UI:Refresh()
         self.warning:Hide()
     end
     self:PaintGoals(step, log)
+    self:ApplyBack()
     self.footer:SetText("Data " .. QS.DATA_VERSION)
 end
 

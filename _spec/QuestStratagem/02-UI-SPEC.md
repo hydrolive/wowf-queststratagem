@@ -30,9 +30,9 @@ The current step is also a pin on the map. Use the Blizzard user waypoint when `
 Top block:
 
 - Window title: `Stratagem`.
-- Status word: `Ready`, `Walking`, `In range`, `Turn in`, `Area`, `Dungeon`, `Hearth`, `Talent`, `Train`, `Craft`, `Sell`, `Repair`, `Bank`, `Auction`, `Boss`, `Kills`, `Already done`, `BiS still missing`.
+- Status word: `Ready`, `Walking`, `In range`, `Turn in`, `Area`, `Dungeon`, `Hearth`, `Talent`, `Train`, `Craft`, `Sell`, `Repair`, `Bank`, `Auction`, `Boss`, `Kills`, `Already done`, `BiS still missing`, `Review`.
 - Subline: `Last leg: 40 min · +1,076 XP` using the previous completed step’s duration and XP delta.
-- Right side, stacked: `Next` and `Back` as small red-brown buttons. Not Ask.
+- Right side, stacked: `Next` and `Back` as small red-brown buttons. Not Ask. Back is hidden when this character has no earlier step. Medium and Small hide it as well. `/qs back` still does nothing in that case.
 
 Divider.
 
@@ -57,7 +57,7 @@ Goals block:
 - If the step is an accept: header `Pick up`, row is `NPC name · Zone`.
 - Objective steps that carry their own `goals` show those rows instead of the quest-log text.
 - Gather lines are `extraGoals`, drawn after the quest rows and before BiS. Example: `Gather Peacebloom` and `0/20`. They do not replace the quest objectives. Five rows fit in the base window. Each further row adds 16px to the large window, up to twelve. Past that, the last row reads `+N more in /qs where`.
-- A ready turn-in with several rewards adds a gold row naming the piece closest to the spec. The row starts with that item's icon. Mouseover opens the item tooltip. The same icon treatment applies to a BiS row that has an item id.
+- A ready turn-in with several rewards adds a gold row naming the piece closest to the spec. The row starts with that item's icon. Mouseover opens the item tooltip. The same icon treatment applies to a BiS row that has an item id. If that choice is a gear upgrade, the next row is `Equip` and the item name, `0/1` until it is worn, then `1/1`. A vendor sale does not add that row. Finishing a quest objective plays a sound: the ring pickup file, then the quest-complete interface file if the first one does not play.
 - If a reward or drop is BiS: extra row, gold, `BiS chest: Robe of the Magi — choose this reward` or `BiS weapon: Ironfoe — drop, Emperor Thaurissan`.
 - A boss step's goal is the boss name, `0/1`. That row is not a quest and not a BiS row.
 
