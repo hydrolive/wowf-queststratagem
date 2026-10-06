@@ -150,8 +150,13 @@ function UI:ApplySize()
     self.goalHeader:SetShown(large)
     self.footer:SetShown(large)
     for i = 1, #self.goalRows do
-        self.goalRows[i].name:SetShown(large)
-        self.goalRows[i].count:SetShown(large)
+        if not large then
+            self.goalRows[i].name:Hide()
+            self.goalRows[i].count:Hide()
+            if self.goalRows[i].icon then
+                self.goalRows[i].icon:Hide()
+            end
+        end
     end
     self.stepTitle:SetShown(large or medium)
     self.dist:SetShown(true)
@@ -367,6 +372,49 @@ local function GoalText(step, log)
     return header, rows
 end
 
+local function ShowItemTip(owner)
+    if not GameTooltip then
+        return
+    end
+    local link = owner.link
+    local itemID = owner.itemID
+    if (not link or link == "") and not itemID then
+        return
+    end
+    GameTooltip:SetOwner(owner, "ANCHOR_RIGHT")
+    if link and link ~= "" then
+        GameTooltip:SetHyperlink(link)
+    elseif GameTooltip.SetItemByID then
+        GameTooltip:SetItemByID(itemID)
+    else
+        GameTooltip:SetHyperlink("item:" .. itemID)
+    end
+    GameTooltip:Show()
+end
+
+local function RowTexture(src)
+    if src.texture and src.texture ~= "" then
+        return src.texture
+    end
+    if src.itemID and src.itemID ~= 0 and type(GetItemInfo) == "function" then
+        local _, _, _, _, _, _, _, _, _, tex = GetItemInfo(src.itemID)
+        return tex
+    end
+    return nil
+end
+
+function UI:FitGoals(shown)
+    if not self.frame then
+        return
+    end
+    local size = (QS.char and QS.char.size) or "large"
+    local h = SIZES[size] and SIZES[size][2] or 340
+    if size == "large" and shown and shown > 5 then
+        h = h + (shown - 5) * 16
+    end
+    self.frame:SetHeight(h)
+end
+
 function UI:PaintGoals(step, log)
     local header, rows = "", {}
     if step then
@@ -382,33 +430,97 @@ function UI:PaintGoals(step, log)
             end
         end
     end
+    local reward = (step and step.rewardRows) or {}
     local bis = (QS.route and QS.route.index and QS.route.bisRows and QS.route.bisRows[QS.route.index]) or {}
     for i = 1, #bis do
-        rows[#rows + 1] = { name = QS.Bis.Line(bis[i]), count = "", bis = true }
+        if not (#reward > 0 and bis[i].reward) then
+            rows[#rows + 1] = {
+                name = QS.Bis.Line(bis[i]),
+                count = "",
+                bis = true,
+                itemID = bis[i].itemID,
+            }
+        end
     end
+    for i = 1, #reward do
+        local pick = reward[i]
+        rows[#rows + 1] = {
+            name = pick.text or pick.name or "Reward",
+            count = "",
+            bis = true,
+            link = pick.link,
+            itemID = pick.itemID,
+            texture = pick.texture,
+        }
+    end
+    if QS.char and QS.char.size ~= "large" then
+        self.goalHeader:Hide()
+        for i = 1, #self.goalRows do
+            local row = self.goalRows[i]
+            row.name:Hide()
+            row.count:Hide()
+            row.icon:Hide()
+        end
+        self:FitGoals(0)
+        return
+    end
+    self.goalHeader:Show()
     self.goalHeader:SetText(header)
-    for i = 1, #self.goalRows do
+    local limit = #self.goalRows
+    local shown = #rows
+    if shown > limit then
+        shown = limit
+    end
+    for i = 1, limit do
         local row = self.goalRows[i]
         local src = rows[i]
-        if src then
+        local overflow = (i == limit and #rows > limit)
+        if src and not overflow then
             row.name:SetText(src.name)
             row.count:SetText(src.count or "")
             local color = src.bis and QS.COLOR.bis or QS.COLOR.body
             row.name:SetTextColor(RGB(color))
             row.count:SetTextColor(RGB(QS.COLOR.muted))
+            local tex = RowTexture(src)
+            local y = -250 - (i - 1) * 16
+            row.name:ClearAllPoints()
+            if tex or src.itemID or (src.link and src.link ~= "") then
+                row.icon.tex:SetTexture(tex or "Interface\\Icons\\INV_Misc_QuestionMark")
+                row.icon.link = src.link
+                row.icon.itemID = src.itemID
+                row.icon:Show()
+                row.name:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 36, y)
+                row.name:SetWidth(300)
+            else
+                row.icon:Hide()
+                row.icon.link = nil
+                row.icon.itemID = nil
+                row.name:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 28, y)
+                row.name:SetWidth(320)
+            end
             row.name:Show()
             row.count:Show()
+        elseif overflow then
+            row.name:ClearAllPoints()
+            row.name:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 28, -250 - (i - 1) * 16)
+            row.name:SetWidth(320)
+            row.name:SetText("+" .. (#rows - limit + 1) .. " more in /qs where")
+            row.name:SetTextColor(RGB(QS.COLOR.muted))
+            row.count:SetText("")
+            row.icon:Hide()
+            row.icon.link = nil
+            row.icon.itemID = nil
+            row.name:Show()
+            row.count:Hide()
         else
             row.name:Hide()
             row.count:Hide()
+            row.icon:Hide()
+            row.icon.link = nil
+            row.icon.itemID = nil
         end
     end
-    if #rows > #self.goalRows then
-        local last = self.goalRows[#self.goalRows]
-        last.name:SetText("+" .. (#rows - #self.goalRows + 1) .. " more in /qs where")
-        last.count:SetText("")
-        last.name:Show()
-    end
+    self:FitGoals(shown)
 end
 
 local function ShowArrow(arrow, measure, step)
@@ -774,17 +886,31 @@ function UI:Init()
     self.goalHeader:SetTextColor(RGB(QS.COLOR.gold))
 
     self.goalRows = {}
-    for i = 1, 5 do
+    for i = 1, 12 do
+        local y = -250 - (i - 1) * 16
+        local icon = CreateFrame("Button", nil, frame)
+        icon:SetSize(16, 16)
+        icon:SetPoint("TOPLEFT", frame, "TOPLEFT", 14, y + 1)
+        local tex = icon:CreateTexture(nil, "ARTWORK")
+        tex:SetAllPoints()
+        icon.tex = tex
+        icon:SetScript("OnEnter", ShowItemTip)
+        icon:SetScript("OnLeave", function()
+            if GameTooltip then
+                GameTooltip:Hide()
+            end
+        end)
+        icon:Hide()
         local name = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        name:SetPoint("TOPLEFT", frame, "TOPLEFT", 28, -250 - (i - 1) * 16)
-        name:SetWidth(340)
+        name:SetPoint("TOPLEFT", frame, "TOPLEFT", 28, y)
+        name:SetWidth(320)
         name:SetJustifyH("LEFT")
         name:SetTextColor(RGB(QS.COLOR.body))
         local count = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-        count:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -16, -250 - (i - 1) * 16)
+        count:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -16, y)
         count:SetJustifyH("RIGHT")
         count:SetTextColor(RGB(QS.COLOR.muted))
-        self.goalRows[i] = { name = name, count = count }
+        self.goalRows[i] = { name = name, count = count, icon = icon }
     end
 
     self.footer = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")

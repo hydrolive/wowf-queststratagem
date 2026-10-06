@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.6"
+QS.VERSION = "0.1.7"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -164,6 +164,10 @@ function QS:Rebuild()
     QS.route.stepId = index and built.steps[index] and built.steps[index].id or nil
     QS.char.routeKey = built.key
     QS.Bis.Annotate(built, id)
+    local current = index and built.steps[index]
+    if current and QS.Bis.Attach then
+        QS.Bis.Attach(current, log)
+    end
     QS.Clock:OnStep(QS.route.stepId)
     if QS.UI and QS.UI.Refresh then
         QS.UI:Refresh(prevId ~= QS.route.stepId)
@@ -236,6 +240,9 @@ function QS:OnEvent(event, arg1, arg2)
         return
     end
     if event == "QUEST_ACCEPTED" or event == "QUEST_FINISHED" or event == "QUEST_LOG_UPDATE" or event == "PLAYER_LEVEL_UP" then
+        if QS.scanningLog then
+            return
+        end
         if event == "QUEST_LOG_UPDATE" or event == "QUEST_FINISHED" then
             DiffTurnIns(QS.Api.ReadLog())
         end

@@ -1,7 +1,9 @@
 -- Turn in a finished quest while the NPC dialog is open, then accept the
 -- next quest only when this route names it, or it is the single follow-up
 -- of a turn-in this route was already on. A dungeon quest shared by a
--- player is accepted on its own. Hold Shift to leave the dialog alone.
+-- player is accepted on its own. A reward with several choices is taken
+-- when the route names it, or one choice is a clear stat upgrade for the
+-- spec. Hold Shift to leave the dialog alone.
 
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
@@ -429,39 +431,47 @@ local function OnGreeting()
     TakeAccept(GreetingOffers())
 end
 
+local function RewardPrefer(questID)
+    local spec = QS.Config and QS.Config.ActiveSpec and QS.Config.ActiveSpec() or nil
+    local steps = QS.route and QS.route.steps
+    if not spec or not steps then
+        return nil
+    end
+    for i = 1, #steps do
+        local step = steps[i]
+        local match = step.questID == questID
+        if not match and step.questIDs then
+            for j = 1, #step.questIDs do
+                if step.questIDs[j] == questID then
+                    match = true
+                end
+            end
+        end
+        if match and step.rewardChoice and step.rewardChoice[spec] and step.rewardChoice[spec].name then
+            return step.rewardChoice[spec].name
+        end
+    end
+    return nil
+end
+
 local function RewardPick()
     local n = type(GetNumQuestChoices) == "function" and (GetNumQuestChoices() or 0) or 0
     if n <= 1 then
         return n <= 0 and 0 or 1
     end
-    local spec = QS.Config and QS.Config.ActiveSpec and QS.Config.ActiveSpec() or nil
-    local questID = DialogID()
-    local want
-    local steps = QS.route and QS.route.steps
-    if spec and steps then
-        for i = 1, #steps do
-            local step = steps[i]
-            local match = step.questID == questID
-            if not match and step.questIDs then
-                for j = 1, #step.questIDs do
-                    if step.questIDs[j] == questID then
-                        match = true
-                    end
-                end
-            end
-            if match and step.rewardChoice and step.rewardChoice[spec] and step.rewardChoice[spec].name then
-                want = string.lower(step.rewardChoice[spec].name)
-            end
-        end
-    end
-    if not want or type(GetQuestItemInfo) ~= "function" then
+    if not QS.Bis or not QS.Bis.Choose then
         return nil
     end
-    for i = 1, n do
-        local ok, name = pcall(GetQuestItemInfo, "choice", i)
-        if ok and type(name) == "string" and string.lower(name) == want then
-            return i
-        end
+    local identity = QS.identity or (QS.Config and QS.Config.Identity and QS.Config.Identity())
+    local spec = QS.Config and QS.Config.ActiveSpec and QS.Config.ActiveSpec() or nil
+    local pick = QS.Bis.Choose(QS.Bis.DialogChoices(), QS.Bis.Equipped(), {
+        classFile = identity and identity.classFile or nil,
+        spec = spec,
+        bis = identity and QS.Bis.List(identity.class, spec) or nil,
+        prefer = RewardPrefer(DialogID()),
+    })
+    if pick and pick.take then
+        return pick.index
     end
     return nil
 end

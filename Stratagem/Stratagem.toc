@@ -2,7 +2,7 @@
 ## Title: Stratagem
 ## Notes: Offline 1-60 stratagem for WoW Forever. Arrow, chains, BiS.
 ## Author: Stratagem
-## Version: 0.1.6
+## Version: 0.1.7
 ## IconTexture: Interface\AddOns\Stratagem\icon.tga
 ## SavedVariables: QuestStratagemDB
 ## SavedVariablesPerCharacter: QuestStratagemCharDB

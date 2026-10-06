@@ -1,4 +1,9 @@
 -- Stratagem changelog
+-- 0.1.7 (2026-10-05)
+-- A quest reward with several choices recommends the piece closest to the
+-- spec: a listed BiS item, or the best stat upgrade over what you have
+-- equipped. Item level alone leaves the choice open. That row has the item
+-- icon and a mouseover. The window grows with the list.
 -- 0.1.6 (2026-10-05)
 -- Earthen Echo points at Muln Earthfury on Skywatcher Plateau, northwest
 -- Mulgore, and stays there while you are still in Thunder Bluff.

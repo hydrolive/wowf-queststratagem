@@ -20,11 +20,11 @@ David Kimball (`@cyberdyneceo`). Horde priest healer is the recent live spec con
 2. Next action is one of: pick up from a named NPC in a named zone, go to an objective, turn in, train a class skill, set or use the hearth, fly, enter a dungeon, spend the next talent point, train a profession, craft, sell or repair, bank, auction, or kill a named boss.
 3. Every size of the window has the arrow.
 4. Right-click cycles Large → Medium → Small → Large.
-5. Next and Back are manual. Accept, objective complete, and turn-in still auto-advance the route. An open NPC dialog turns a finished quest in. It accepts a quest only when the route names it, it is the only follow-up of a turn-in the route was on, or another player shares a dungeon quest. Hold Shift to handle that dialog yourself.
+5. Next and Back are manual. Accept, objective complete, and turn-in still auto-advance the route. An open NPC dialog turns a finished quest in. It accepts a quest only when the route names it, it is the only follow-up of a turn-in the route was on, or another player shares a dungeon quest. A reward with several choices is taken when the route names that item, or one choice is a clear stat upgrade over the equipped gear for the active spec. A downgrade, a tie, or a guess from item level alone stays open. Hold Shift to handle that dialog yourself.
 6. On load, rebuild the frontier from the quest log and completed-quest flags. Never send the player to a quest already turned in.
 7. Path is zone-cluster optimized: pull precursors before leaving a hub if a later step returns there.
 8. A dungeon is on the route when quest XP, a quest chain, or a BiS item justifies it, or when the player is walking a named boss order. Boss steps are kills. They are not quests and they are not BiS checks. Forever dungeon mob XP is reduced; dungeon quest XP is raised. Do not add a grind-for-XP loop.
-9. If a quest reward or boss drop is BiS for the confirmed spec, the goals block says so and names the item. The goal is the item, not “finish the dungeon.”
+9. If a quest reward or boss drop is BiS for the confirmed spec, the goals block says so and names the item. The goal is the item, not “finish the dungeon.” A turn-in with several rewards also names the piece closest to that spec, scored against the item you have equipped, and shows its icon.
 10. Time goal is an estimate to 60. Actual tracked time sits beside it.
 11. Target is the fastest reasonable 1–60 on WoW Forever, not a tourism route and not a dungeon grind.
 12. Data is versioned. Classic IDs are the spine. Forever-only quests are overlays with a confidence flag.
@@ -223,7 +223,7 @@ The addon folder, TOC, and window title are Stratagem. Saved variables stay `Que
 
 Talking to an NPC turns in a finished quest on its own. Hold Shift, or turn off Options → Auto turn-in and accept, to leave the dialog alone.
 
-An offered quest is accepted only when a route step names that quest id or that quest title, or the NPC just took a turn-in the route was on and is offering one follow-up. A board of extra quests stays untouched. A reward with several choices is left open unless the route names the item for the active spec. One choice, or no choice, is taken.
+An offered quest is accepted only when a route step names that quest id or that quest title, or the NPC just took a turn-in the route was on and is offering one follow-up. A board of extra quests stays untouched. In 0.1.5 a reward with several choices was left open unless the route named the item for the active spec. One choice, or no choice, was taken. 0.1.7 also takes a clear upgrade. See Implemented in 0.1.7.
 
 A dungeon quest another player shares is accepted. That is `QUEST_ACCEPT_CONFIRM` or a detail frame whose giver is a player, when the quest tag is dungeon (81), the title names a dungeon in the registry, or you are already inside a dungeon.
 
@@ -240,6 +240,14 @@ Next remembers the step it skipped. Back returns to that step, including when th
 The route row no longer has Reroute or the skip mark beside the percent. Next and Back stay. A reload clears area skips that were made before Back could return to them, so the plateau shows again after the previous Next.
 
 Lua files for this pass were parsed as Lua 5.1, and the Thunder Bluff, Orgrimmar, and Back path was executed outside the client. Nobody logged the character in during this pass.
+
+## Implemented in 0.1.7
+
+A finished quest that offers several rewards gets a goal row for the piece closest to the active spec. A reward the route already names, or a listed BiS item, wins. Otherwise the score is spec stat weights plus item level, compared with the item in that slot. Rings and trinkets compare with the weaker of the two. A two-hand weapon compares with the main hand and the off-hand together. The row shows the item icon. Mouseover is the item tooltip. The large window grows by 16 pixels for each objective past five, up to twelve rows.
+
+The turn-in takes that item when it is the named reward, the BiS piece, or a clear upgrade scored from item stats. A downgrade, a near tie, or a higher item level with no stats leaves the dialog open. The goal row still names the closest piece. Armor your class does not wear is not recommended.
+
+Lua files for this pass were parsed as Lua 5.1, and the reward scorer was executed outside the client. Nobody logged the character in during this pass.
 
 ## Still todo
 
@@ -283,3 +291,4 @@ Lua files for this pass were parsed as Lua 5.1, and the Thunder Bluff, Orgrimmar
 - 2026-10-05: `ADDON_LOADED` uses the folder name `Stratagem`. The Lua global stays `QuestStratagem`.
 - 2026-10-05: NPC turn-ins are automatic. Accepts are limited to the route, one follow-up of a route turn-in, and a shared dungeon quest. The current step is a map pin. The window has no corner medallion.
 - 2026-10-05: A quest with its own destination stays until it leaves the log. Next can leave it, and Back returns to it. Earthen Echo goes to Muln Earthfury on Skywatcher Plateau.
+- 2026-10-05: Quest reward choices are scored against equipped gear for the active spec. The closest piece is a goal row with its item icon. The large window grows to fit the objective list.

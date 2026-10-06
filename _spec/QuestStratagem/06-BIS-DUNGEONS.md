@@ -80,4 +80,6 @@ Raid BiS (MC, Ony, BWL, ZG, AQ, Naxx, Barrow Deeps, Hyjal Summit) is a level-60 
 
 ## Reward choice
 
-On turn-in steps, if `rewardChoice[spec]` is set, goals row replaces “pick a reward” with the item name. If that item is also BiS, prefix `BiS`.
+On turn-in steps, if `rewardChoice[spec]` is set, that named item wins. If that item is also BiS, prefix `BiS`.
+
+When the quest log or the turn-in dialog lists several choices and the route did not name one, compare them to the equipped item in that slot. Spec stat weights score the reward and the equipped piece. Item level stands in when the client has not returned stats, and that guess stays on the goal row while the reward dialog stays open. A listed BiS name or item id wins outright. A clear upgrade, scored from stats, is the recommendation and the turn-in takes it. A downgrade, or a tie, stays on the goal row and the reward dialog stays open. The row shows the item icon. Mouseover is the item tooltip. Cloth on a plate class, and the other class armor mismatches, are not recommended.
