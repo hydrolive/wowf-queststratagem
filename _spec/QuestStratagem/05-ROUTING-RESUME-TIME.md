@@ -104,6 +104,10 @@ Never point at an NPC for a quest in the completed set. If the only remaining st
 - Back: show the previous stored step, even when that id is no longer in the built route. Status reads `Review`. The button is hidden when you are on the live step and the history is empty, or when you are already on the oldest stored step.
 - Next while reviewing walks toward the live step. It does not skip the quest you are actually on. The last Next in the history returns to that live step.
 
+## Clean Quest Log
+
+Options shows `Clean Quest Log` and `Removes X Quests`. X counts log quests the current route will not do. A quest counts as intended when a step that is not grey names its id or its title. An area step names the quests in the cluster you are on. A sourced place, such as Defending the Dead on Skywatcher Plateau, also keeps an in-color log quest that is not the current step yet. A grey quest is not intended, even if an old starter step or the area cluster still mentions it. Quests the route never names are not intended. The click abandons that list, highest log index first, and leaves the rest. Demo mode abandons nothing.
+
 ## Clock
 
 - Actual: sum of time while the frame is loaded and the player is logged in, persisted every 30s and on logout. This is not `/played` (addons cannot read `/played` reliably). Label it `Tracked`, not `/played`.

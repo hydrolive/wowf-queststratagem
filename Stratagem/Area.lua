@@ -81,6 +81,10 @@ local function PlaceFor(title)
     return PLACES[string.lower(title)]
 end
 
+function Area.KnownTitle(title)
+    return PlaceFor(title) and true or false
+end
+
 local function ZoneHere(zone)
     if not zone or zone == "" then
         return false

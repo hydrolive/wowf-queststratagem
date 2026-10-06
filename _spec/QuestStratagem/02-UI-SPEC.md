@@ -97,6 +97,7 @@ Arrow and `194 yd` only. Tooltip on hover shows step title and zone so the tiny 
 - Spec: three radio buttons from the class talent trees. Required before the route leaves the starter zone. Guess from spent talent points if ≥10 points sit in one tree; still show confirm.
 - Pace: `Guide`, `Steady`, `First run`. Scales the time-to-next-level guess (and the demo 72h line). It does not change which steps are chosen.
 - Toggles: dungeon detours, BiS callouts, class quests, profession steps (on by default; a 0.1.0 save is turned on once). Profession steps cover gather lines, craft reminders, and trainer steps. Hearth, talents, sell/repair, bank, auction, and boss kills stay on when it is off.
+- Clean Quest Log. The button reads `Clean Quest Log`, and the line under it reads `Removes X Quests`. X is how many quests in the log this route will not do. Hover lists those names. One click abandons them. A quest stays if a route step that is not grey names its id or title. It also stays when the current area names it, or Stratagem has a place for that title, and the quest is still in color. Grey quests and quests the route never names are the ones removed. Demo mode does not abandon anything. Next still does not abandon.
 - Reset route / clear skips.
 
 ## Empty and error states

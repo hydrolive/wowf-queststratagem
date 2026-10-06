@@ -1,4 +1,8 @@
 -- Stratagem changelog
+-- 0.1.10 (2026-10-06)
+-- Options has Clean Quest Log. The line under it is Removes X Quests,
+-- where X is the log quests this route will not do. One click abandons
+-- those. Quests the route still names stay.
 -- 0.1.9 (2026-10-06)
 -- Horde leaving Mulgore, Thunder Bluff, or Skywatcher Plateau for another
 -- zone says Fly to that zone. The arrow is Tal in Thunder Bluff, inside

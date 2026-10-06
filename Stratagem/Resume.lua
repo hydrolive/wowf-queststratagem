@@ -559,6 +559,195 @@ function Resume.SeedHistory(char, log)
     }
 end
 
+local function LowerTitle(title)
+    if type(title) ~= "string" then
+        return nil
+    end
+    local name = string.lower(title)
+    if name == "" then
+        return nil
+    end
+    return name
+end
+
+local function StepNamesQuest(step, questID, name)
+    if questID and questID > 0 then
+        if step.questID == questID then
+            return true
+        end
+        local ids = step.questIDs
+        if ids then
+            for i = 1, #ids do
+                if ids[i] == questID then
+                    return true
+                end
+            end
+        end
+    end
+    if not name then
+        return false
+    end
+    if step.questName and string.lower(step.questName) == name then
+        return true
+    end
+    local titles = step.acceptTitles
+    if titles then
+        for i = 1, #titles do
+            if string.lower(titles[i]) == name then
+                return true
+            end
+        end
+    end
+    local titled = step.kind == "accept" or step.kind == "turnin" or step.kind == "objective"
+    if titled and step.title and string.lower(step.title) == name then
+        return true
+    end
+    return false
+end
+
+function Resume.QuestIntended(route, questID, info)
+    if not route or not route.steps or route.key == "demo" or (QS.char and QS.char.demo) then
+        return true
+    end
+    local name = LowerTitle(info and info.title)
+    local namedByWork = false
+    local namedByArea = false
+    for i = 1, #route.steps do
+        local step = route.steps[i]
+        if StepNamesQuest(step, questID, name) then
+            local grey = QS.Level and QS.Level.IsGrey and QS.Level.IsGrey(step)
+            if step.kind == "area" then
+                namedByArea = true
+            elseif not grey then
+                namedByWork = true
+            end
+        end
+    end
+    if namedByWork then
+        return true
+    end
+    local level = info and info.level
+    if type(level) == "number" and QS.Level and QS.Level.IsGrey then
+        if QS.Level.IsGrey({ kind = "accept", questLevel = level }) then
+            return false
+        end
+    end
+    if namedByArea then
+        return true
+    end
+    if name and QS.Area and QS.Area.KnownTitle and QS.Area.KnownTitle(name) then
+        return true
+    end
+    return false
+end
+
+function Resume.StrayQuests(route)
+    local rows = {}
+    local log = route and route.log
+    if not route or not route.steps or not log or not log.inLog then
+        return rows
+    end
+    if route.key == "demo" or (QS.char and QS.char.demo) then
+        return rows
+    end
+    for questID, info in pairs(log.inLog) do
+        if type(questID) == "number" and questID > 0 and not Resume.QuestIntended(route, questID, info) then
+            rows[#rows + 1] = {
+                id = questID,
+                title = (info and info.title) or ("Quest " .. questID),
+                index = (info and info.index) or 0,
+                complete = info and info.complete and true or false,
+            }
+        end
+    end
+    table.sort(rows, function(a, b)
+        if a.index == b.index then
+            return a.id > b.id
+        end
+        return a.index > b.index
+    end)
+    return rows
+end
+
+local function LogIndex(questID)
+    if not (GetQuestLogTitle and GetNumQuestLogEntries) then
+        return nil
+    end
+    local n = GetNumQuestLogEntries() or 0
+    for i = n, 1, -1 do
+        local _, _, _, isHeader, _, _, _, qid = GetQuestLogTitle(i)
+        if not isHeader and qid == questID then
+            return i
+        end
+    end
+    return nil
+end
+
+local function AbandonOne(row)
+    local canScan = GetQuestLogTitle and GetNumQuestLogEntries
+    local index = LogIndex(row.id)
+    if not index and not canScan then
+        index = row.index
+    end
+    if SelectQuestLogEntry and SetAbandonQuest and AbandonQuest and index and index > 0 then
+        local ok = pcall(function()
+            SelectQuestLogEntry(index)
+            SetAbandonQuest()
+            AbandonQuest()
+        end)
+        if ok and not canScan then
+            return true
+        end
+        if ok and LogIndex(row.id) == nil then
+            return true
+        end
+    end
+    if C_QuestLog and C_QuestLog.SetSelectedQuest and C_QuestLog.SetAbandonQuest and C_QuestLog.AbandonQuest then
+        local ok = pcall(function()
+            C_QuestLog.SetSelectedQuest(row.id)
+            C_QuestLog.SetAbandonQuest()
+            C_QuestLog.AbandonQuest()
+        end)
+        return ok and true or false
+    end
+    return false
+end
+
+function Resume.AbandonStrays(route)
+    local rows = Resume.StrayQuests(route)
+    local removed = {}
+    for i = 1, #rows do
+        if AbandonOne(rows[i]) then
+            removed[#removed + 1] = rows[i].title
+        end
+    end
+    local n = #removed
+    if n > 0 and QS.Print then
+        local shown = {}
+        local limit = n
+        if limit > 8 then
+            limit = 8
+        end
+        for i = 1, limit do
+            shown[#shown + 1] = removed[i]
+        end
+        local msg = "Clean Quest Log removed " .. n
+        if n == 1 then
+            msg = msg .. " quest: "
+        else
+            msg = msg .. " quests: "
+        end
+        msg = msg .. table.concat(shown, ", ")
+        if n > 8 then
+            msg = msg .. ", ..."
+        end
+        pcall(function()
+            QS:Print(msg)
+        end)
+    end
+    return n
+end
+
 function Resume.Reset()
     local char = QS.char
     char.skips = {}

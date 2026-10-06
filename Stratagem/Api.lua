@@ -345,7 +345,7 @@ function Api.ReadLog()
     local current
     local n = Api.LogCount()
     for i = 1, n do
-        local title, isHeader, isComplete, questID
+        local title, isHeader, isComplete, questID, level
         if C_QuestLog and C_QuestLog.GetInfo then
             local info = C_QuestLog.GetInfo(i)
             if info then
@@ -353,14 +353,23 @@ function Api.ReadLog()
                 isHeader = info.isHeader
                 questID = info.questID
                 isComplete = info.isComplete
+                level = info.level or info.difficultyLevel
             end
         end
-        if questID == nil and GetQuestLogTitle then
-            local t, _, _, header, _, complete, _, qid = GetQuestLogTitle(i)
-            title = t
-            isHeader = header
-            isComplete = complete
-            questID = qid
+        if (questID == nil or level == nil) and GetQuestLogTitle then
+            local t, lvl, _, header, _, complete, _, qid = GetQuestLogTitle(i)
+            if questID == nil then
+                title = t
+                isHeader = header
+                isComplete = complete
+                questID = qid
+            end
+            if level == nil then
+                level = lvl
+            end
+        end
+        if type(level) ~= "number" then
+            level = tonumber(level)
         end
         if isHeader then
             current = { name = title or "Quests", quests = {} }
@@ -377,6 +386,7 @@ function Api.ReadLog()
             inLog[questID] = {
                 index = i,
                 title = title,
+                level = level,
                 complete = complete,
                 zone = zoneName,
                 objectives = ReadObjectives(questID, i),

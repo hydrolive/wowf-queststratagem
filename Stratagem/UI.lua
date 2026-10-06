@@ -609,6 +609,9 @@ function UI:Refresh()
     self:PaintGoals(step, log)
     self:ApplyBack()
     self.footer:SetText("Data " .. QS.DATA_VERSION)
+    if self.config and self.config:IsShown() then
+        self:RefreshConfig()
+    end
 end
 
 function UI:OnTick()
@@ -717,6 +720,22 @@ function UI:RefreshConfig()
     for i = 1, #self.config.checks do
         local row = self.config.checks[i]
         row.box:SetText(char[row.key] and "[x]" or "[ ]")
+    end
+    local strays = (QS.Resume and QS.Resume.StrayQuests and QS.Resume.StrayQuests(QS.route)) or {}
+    local clean = self.config.clean
+    clean.strays = strays
+    local n = #strays
+    local word = "Quests"
+    if n == 1 then
+        word = "Quest"
+    end
+    self.config.cleanNote:SetText("Removes " .. n .. " " .. word)
+    if n > 0 then
+        clean.bg:SetColorTexture(0.45, 0.16, 0.12, 1)
+        self.config.cleanNote:SetTextColor(RGB(QS.COLOR.body))
+    else
+        clean.bg:SetColorTexture(0.22, 0.16, 0.12, 1)
+        self.config.cleanNote:SetTextColor(RGB(QS.COLOR.muted))
     end
     local debug = QS.db and QS.db.debug
     self.config.debugBlock:SetShown(debug and true or false)
@@ -1059,6 +1078,63 @@ function UI:BuildConfig()
         end)
         panel.checks[i] = row
     end
+
+    local clean = TextButton(panel, "Clean Quest Log", 210, 36, 0.22, 0.16, 0.12)
+    clean:SetPoint("BOTTOMLEFT", 16, 46)
+    clean.label:ClearAllPoints()
+    clean.label:SetPoint("TOP", 0, -5)
+    panel.cleanNote = clean:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    panel.cleanNote:SetPoint("BOTTOM", 0, 5)
+    panel.cleanNote:SetText("Removes 0 Quests")
+    panel.cleanNote:SetTextColor(RGB(QS.COLOR.muted))
+    panel.clean = clean
+    clean:SetScript("OnEnter", function(self)
+        local count = self.strays and #self.strays or 0
+        if count > 0 then
+            self.bg:SetColorTexture(0.53, 0.22, 0.16, 1)
+        end
+        if not GameTooltip or count == 0 then
+            return
+        end
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText("Clean Quest Log", 1, 0.82, 0)
+        GameTooltip:AddLine("Drops quests in your log that this route will not do. Quests the route still names stay.", 0.9, 0.88, 0.83, true)
+        local limit = count
+        if limit > 12 then
+            limit = 12
+        end
+        for i = 1, limit do
+            local row = self.strays[i]
+            local line = row.title or ("Quest " .. row.id)
+            if row.complete then
+                line = line .. " (ready to turn in)"
+            end
+            GameTooltip:AddLine(line, 0.9, 0.88, 0.83, true)
+        end
+        if count > 12 then
+            GameTooltip:AddLine("and " .. (count - 12) .. " more", 0.66, 0.63, 0.57, true)
+        end
+        GameTooltip:Show()
+    end)
+    clean:SetScript("OnLeave", function(self)
+        local count = self.strays and #self.strays or 0
+        if count > 0 then
+            self.bg:SetColorTexture(0.45, 0.16, 0.12, 1)
+        else
+            self.bg:SetColorTexture(0.22, 0.16, 0.12, 1)
+        end
+        if GameTooltip then
+            GameTooltip:Hide()
+        end
+    end)
+    clean:SetScript("OnClick", function(self)
+        local count = self.strays and #self.strays or 0
+        if count == 0 or not QS.Resume or not QS.Resume.AbandonStrays then
+            return
+        end
+        QS.Resume.AbandonStrays(QS.route)
+        QS:RequestRebuild()
+    end)
 
     local reset = TextButton(panel, "Reset route", 120, 22, 0.45, 0.16, 0.12)
     reset:SetPoint("BOTTOMLEFT", 16, 16)

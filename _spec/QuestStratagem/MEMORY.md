@@ -268,6 +268,12 @@ A Horde character in Mulgore, Thunder Bluff, or Skywatcher Plateau, headed for a
 
 Lua files for this pass were parsed as Lua 5.1. The Skywatcher Plateau to Orgrimmar step was executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.10
+
+Options has a Clean Quest Log button. The line under the name is Removes X Quests. X is the number of quests in the log that this route will not do. Hover lists the names. One click abandons that list and leaves the rest. A quest stays when a route step that is not grey names its id or title. It also stays when the area you are on names it, or Stratagem has a place for that title, and the quest is still in color. Grey quests go, including a starter quest the area cluster still has. Quests the route never names go. Demo mode does not abandon anything. Next still does not abandon.
+
+Lua files for this pass were parsed as Lua 5.1. The stray-quest count was executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -313,3 +319,4 @@ Lua files for this pass were parsed as Lua 5.1. The Skywatcher Plateau to Orgrim
 - 2026-10-05: Quest reward choices are scored against equipped gear for the active spec. The closest piece is a goal row with its item icon. The large window grows to fit the objective list.
 - 2026-10-05: No gear winner means the highest vendor price. A gear winner is equipped as its own objective. Completed objectives play a loot sound. Back reviews stored steps and hides when none exist. In-range quests at Muln Earthfury are picked up, not skipped. Flight paths and trainer skills are goals, not inn pins. Dual spec starts at level 40.
 - 2026-10-06: Horde leaving Mulgore for another zone flies from Tal in Thunder Bluff. 34.3, 25.8 is the Valanaar zeppelin, not a flight master.
+- 2026-10-06: Clean Quest Log abandons log quests the current route will not do. In-color quests the route names stay.
