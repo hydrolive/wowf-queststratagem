@@ -261,7 +261,7 @@ local function InsertDungeons(steps, identity, char, level)
         local dungeon = dungeons[i]
         if dungeon.confidence == "stub" and not char.includeStubs then
             -- off
-        elseif level + 1 >= dungeon.min and level <= dungeon.max then
+        elseif level >= dungeon.min and level <= dungeon.max then
             local factionOK = (not dungeon.faction) or dungeon.faction == identity.faction
             local hasQuest = dungeon.quests and #dungeon.quests > 0
             local bossSteps = (QS.Live and QS.Live.BossSteps(dungeon)) or {}

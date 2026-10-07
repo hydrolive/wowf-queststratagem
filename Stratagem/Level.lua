@@ -222,7 +222,7 @@ local function PickDungeon(steps, level, faction, char)
         if row and (not row.faction or row.faction == faction) and not Cleared(row, char) then
             local mid = ((row.min or level) + (row.max or level)) / 2
             local grey = (level - mid) > range
-            local inBand = level + 1 >= (row.min or 1) and level <= (row.max or 60) + 1
+            local inBand = level >= (row.min or 1) and level <= (row.max or 60)
             if inBand and not grey then
                 local dist = math.abs(mid - level)
                 if not best or dist < bestDist or (dist == bestDist and (row.min or 0) > (best.min or 0)) then
@@ -577,7 +577,7 @@ local HORDE_ROAD = {
     Stop(27, "Thousand Needles", "Darkcloud Pinnacle"),
     Stop(27, "Thousand Needles", "Highperch"),
     Stop(27, "Thousand Needles", "Splithoof Crag"),
-    Stop(27, "The Barrens", "Razorfen Kraul"),
+    Stop(29, "The Barrens", "Razorfen Kraul"),
     Stop(28, "Thousand Needles", "Windbreak Canyon"),
     Stop(28, "Thousand Needles", "Camp E'thok"),
     Stop(28, "Thousand Needles", "Roguefeather Den"),

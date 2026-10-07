@@ -1,4 +1,7 @@
 -- Stratagem changelog
+-- 0.1.28 (2026-10-06)
+-- Gnomeregan stays off the path until level 29, when the
+-- dungeon finder lists it. At 28 the dungeon is Blackfathom Deeps.
 -- 0.1.27 (2026-10-06)
 -- Ordanus sends you to Ashenvale. The arrow points at
 -- Raynewood Retreat. Back keeps that live step on the path.
@@ -166,7 +169,7 @@ end
 
 stubDungeon("hall-of-thanes", "Hall of Thanes", "Ironforge", 13, 18, "Alliance")
 stubDungeon("ruins-of-lordaeron", "Ruins of Lordaeron", "Tirisfal Glades", 15, 20, "Horde")
-stubDungeon("excavation-site", "Excavation Site", "Wetlands", 24, 31, nil)
+stubDungeon("excavation-site", "Excavation Site", "Wetlands", 26, 33, nil)
 stubDungeon("city-of-dalaran", "City of Dalaran", "Alterac Mountains", 28, 33, nil)
 stubDungeon("drowned-city", "The Drowned City", "Stranglethorn Vale", 35, 40, nil)
 stubDungeon("kroldok", "Krol'dok Stronghold", "The Riverglades", 40, 45, nil)

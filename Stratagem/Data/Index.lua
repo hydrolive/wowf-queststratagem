@@ -43,11 +43,15 @@ end
 Dungeon({ id = "rfc", name = "Ragefire Chasm", min = 13, max = 18, faction = "Horde", zone = "Orgrimmar", mapID = 1454, x = 0.52, y = 0.49, quests = {} })
 Dungeon({ id = "deadmines", name = "The Deadmines", min = 16, max = 22, faction = "Alliance", zone = "Westfall", mapID = 1436, x = 0.426, y = 0.717, entranceX = 0.426, entranceY = 0.717, quests = {} })
 Dungeon({ id = "wailingcaverns", name = "Wailing Caverns", min = 17, max = 24, faction = "Horde", zone = "The Barrens", mapID = 1413, x = 0.460, y = 0.366, quests = {} })
-Dungeon({ id = "sfk", name = "Shadowfang Keep", min = 18, max = 26, zone = "Silverpine Forest", mapID = 1421, x = 0.445, y = 0.678, quests = {} })
-Dungeon({ id = "bfd", name = "Blackfathom Deeps", min = 20, max = 28, zone = "Ashenvale", mapID = 1440, x = 0.141, y = 0.144, quests = {} })
-Dungeon({ id = "stockades", name = "The Stockade", min = 22, max = 28, faction = "Alliance", zone = "Stormwind City", mapID = 1453, x = 0.40, y = 0.55, quests = {} })
-Dungeon({ id = "gnomeregan", name = "Gnomeregan", min = 24, max = 32, zone = "Dun Morogh", mapID = 1426, x = 0.24, y = 0.40, quests = {} })
-Dungeon({ id = "rfk", name = "Razorfen Kraul", min = 24, max = 32, zone = "The Barrens", mapID = 1413, x = 0.42, y = 0.90, quests = {} })
+-- Group Finder ranges from this client. A dungeon stays off the path
+-- until the player's level is inside that range.
+-- At 28 the finder lists Shadowfang Keep 20-30, Blackfathom Deeps 24-32,
+-- and Excavation Site 26-33. Gnomeregan and Razorfen Kraul open at 29.
+Dungeon({ id = "sfk", name = "Shadowfang Keep", min = 20, max = 30, zone = "Silverpine Forest", mapID = 1421, x = 0.445, y = 0.678, quests = {} })
+Dungeon({ id = "bfd", name = "Blackfathom Deeps", min = 24, max = 32, zone = "Ashenvale", mapID = 1440, x = 0.141, y = 0.144, quests = {} })
+Dungeon({ id = "stockades", name = "The Stockade", min = 24, max = 32, faction = "Alliance", zone = "Stormwind City", mapID = 1453, x = 0.40, y = 0.55, quests = {} })
+Dungeon({ id = "gnomeregan", name = "Gnomeregan", min = 29, max = 38, zone = "Dun Morogh", mapID = 1426, x = 0.24, y = 0.40, quests = {} })
+Dungeon({ id = "rfk", name = "Razorfen Kraul", min = 29, max = 38, zone = "The Barrens", mapID = 1413, x = 0.42, y = 0.90, quests = {} })
 Dungeon({ id = "sm", name = "Scarlet Monastery", min = 30, max = 42, zone = "Tirisfal Glades", mapID = 1420, x = 0.85, y = 0.32, quests = {} })
 Dungeon({ id = "rfd", name = "Razorfen Downs", min = 35, max = 45, zone = "The Barrens", mapID = 1413, x = 0.49, y = 0.90, quests = {} })
 Dungeon({ id = "uldaman", name = "Uldaman", min = 38, max = 46, zone = "Badlands", mapID = 1418, x = 0.44, y = 0.12, quests = {} })

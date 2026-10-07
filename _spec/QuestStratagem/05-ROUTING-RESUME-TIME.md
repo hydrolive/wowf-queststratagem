@@ -44,7 +44,7 @@ Do not re-sort across clusters. Author order is the travel order.
 
 Insert when all are true:
 
-- Player level is inside the dungeon’s `min`–`max` (or within 1 below min).
+- Player level is inside the dungeon’s Group Finder `min`–`max`. A dungeon one level under that minimum stays off the path.
 - Faction matches, when the row has a faction.
 - `dungeonDetours` is on, and this dungeon id is not skipped.
 - The row has at least one quest id, or a boss list. Classic rows currently have empty quest lists and a boss list, so the window still inserts.
@@ -63,7 +63,7 @@ While the player's zone equals `insideZone`, unfinished boss steps for that inst
 
 Skipping a boss is Next. Kill credit is the hostile-death chat line, when the name matches. There is no interior pin in this data version, so the arrow hides and the distance line names the boss.
 
-When the level plan has no in-band quest left, only one of those dungeon windows stays active. The others are marked `levelDefer`. The closest midpoint wins. Horde level 27 keeps Razorfen Kraul and defers Blackfathom Deeps. Kill steps then fill the rest of the XP bar at that level's hub. They are not invented quests. The step text says the quest ids are not authored. While in-band quests remain, no kill step is inserted and dungeons are not deferred. Forever dungeon stubs stay out unless `includeStubs` is on. The nine Forever dungeons wait on public quest ids.
+When the level plan has no in-band quest left, only one of those dungeon windows stays active. The others are marked `levelDefer`. The closest midpoint wins. At 28 the finder lists Blackfathom Deeps (24–32), so that dungeon stays and Gnomeregan (29–38) waits. Razorfen Kraul uses the same 29–38 range. Kill steps then fill the rest of the XP bar at that level's hub. They are not invented quests. The step text says the quest ids are not authored. While in-band quests remain, no kill step is inserted and dungeons are not deferred. Forever dungeon stubs stay out unless `includeStubs` is on. The nine Forever dungeons wait on public quest ids.
 
 ## Resume
 

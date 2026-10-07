@@ -37,7 +37,7 @@ David Kimball (`@cyberdyneceo`). Horde priest healer is the recent live spec con
 - New zones: Zephras Isle (Skyborne 1–12), Mount Hyjal, Shen’dralas, The Riverglades.
 - New race: Skyborne. High Order = Alliance (Mage, not Shaman). Windshaper = Horde (Shaman, not Mage). Both: Warrior, Hunter, Rogue, Druid. Paid unlock.
 - New race/class combos: Dwarf Shaman, Gnome Priest, Human Hunter, Orc Mage, Troll Warlock, Undead Paladin.
-- Nine new dungeons (ranges differ by a couple levels across sources; store both and prefer in-game): Hall of Thanes 13–18 Ironforge; Ruins of Lordaeron 15–20 Tirisfal; Excavation Site: Wetlands 24–31; City of Dalaran 28–33 Alterac; The Drowned City 35–40 Stranglethorn; Krol’dok Stronghold 40–45 Riverglades; Alcaz Prison 48–53 Dustwallow; Blackmaw Hold 55–60 Azshara; Shaper’s Terrace 58–60 Un’Goro.
+- Nine new dungeons (ranges differ by a couple levels across sources; store both and prefer in-game): Hall of Thanes 13–18 Ironforge; Ruins of Lordaeron 15–20 Tirisfal; Excavation Site: Wetlands 26–33; City of Dalaran 28–33 Alterac; The Drowned City 35–40 Stranglethorn; Krol’dok Stronghold 40–45 Riverglades; Alcaz Prison 48–53 Dustwallow; Blackmaw Hold 55–60 Azshara; Shaper’s Terrace 58–60 Un’Goro.
 - Raids from 9 Dec 2026: Barrow Deeps (10), Hyjal Summit (20), plus Onyxia 40. Out of scope for 1–60 routing except as a level-60 note.
 - 1,000+ new quests announced. Public databases are incomplete. Do not invent quest IDs.
 
@@ -161,7 +161,7 @@ The bar is this level's XP, not the cluster count. The gold width is the XP alre
 
 In-band means an accept, objective, or turn-in that is not done, not grey, and whose content level is at most player level + 3. While any of those exist, the route name stays, dungeons are not deferred, and no kill step is inserted in front of the chain. If those quests do not fill the remaining XP, the bar adds a slice named `Kills beside the quests` with no step, so the arrow stays on the quest. A real level 4 in Durotar still follows Durotar.
 
-When nothing in band is left, the route name becomes `Level 27 · Thousand Needles`. One dungeon stays: among the windows actually inserted, not cleared, not grey by midpoint, inside the level band, the closest midpoint wins, and a higher minimum breaks a tie. At Horde 27 that is Razorfen Kraul (24–32, midpoint 28). Blackfathom Deeps (midpoint 24) is deferred, and so is the "next band is not authored" step. Other dungeon steps get `levelDefer`, which resume treats as done. The door text says mobs in the level's zone finish the bar. If less than 20% of the level remains, the dungeon is skipped and only kills fill the bar. Bosses already in `bossDown` count as cleared.
+When nothing in band is left, the route name becomes `Level 27 · Thousand Needles`. One dungeon stays: among the windows actually inserted, not cleared, not grey by midpoint, inside the level band, the closest midpoint wins, and a higher minimum breaks a tie. At 28 the Group Finder lists Blackfathom Deeps (24–32), so that dungeon stays. Gnomeregan and Razorfen Kraul are 29–38 and stay off the path until 29. The "next band is not authored" step is deferred too. Other dungeon steps get `levelDefer`, which resume treats as done. The door text says mobs in the level's zone finish the bar. If less than 20% of the level remains, the dungeon is skipped and only kills fill the bar. Bosses already in `bossDown` count as cleared.
 
 Kill steps are new tables, ids `dyn-kills-{level}-{n}`, kind `kills`. They are inserted after the chosen dungeon. Each chunk is about 10% of the level, one to four steps. A chunk finishes when `UnitXP` reaches its mark, or on ding for the last chunk. The arrow points at a reported hub with `pin = "approx"`. The text says quest ids for that band are not in the guide, grey quests are skipped, and this finishes the bar. Horde hubs: 1–12 The Crossroads, 13–22 Camp Taurajo, 25–28 Freewind Post (the note says this is the fast road, Hillsbrad is the other road, and Stonetalon is the earlier road at about 20–26), 29–36 Grom'gol, 37–44 Gadgetzan, 45–52 Marshal's Refuge, 53–60 Everlook. Alliance: 1–12 Sentinel Hill, 13–20 Thelsamar, 21–28 Darkshire, 29–36 Booty Bay, then the same Tanaris and Un'Goro hubs, 53–60 Light's Hope Chapel. Those coordinates are approximate.
 
@@ -385,6 +385,12 @@ Ordanus is the trip to Ashenvale. The step is Go to Ashenvale while you are stil
 
 Lua files for this pass were parsed as Lua 5.1. The Ashenvale pin and the path row were executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.28
+
+The path lists a dungeon only while the player's level is inside the Group Finder range. Gnomeregan and Razorfen Kraul are 29–38, so at 28 they stay off the path. Blackfathom Deeps is 24–32 and is the dungeon for that level. Shadowfang Keep is 20–30. Excavation Site is 26–33 in the finder and stays off the route until it has a public quest id.
+
+Lua files for this pass were parsed as Lua 5.1. The level-28 dungeon list was executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -406,7 +412,7 @@ Lua files for this pass were parsed as Lua 5.1. The Ashenvale pin and the path r
 ## Open gaps (do not paper over)
 
 - Forever quest IDs, NPC IDs, and coordinates for new zones are not stable.
-- Excavation Site level band is 24–29 in one source and 26–31 in another.
+- Excavation Site is 26–33 in the Group Finder on this client. Older pages said 24–29 and 26–31. It stays a stub until a public quest id exists.
 - Spec is not an API. Talent points can suggest it; the player confirms.
 - `IsQuestFlaggedCompleted` / `C_QuestLog` may or may not exist on the Forever client. Probe at load; fall back to quest-log scan plus our own turn-in log.
 - Interface version in the TOC must be taken from a working Forever addon, not guessed forever.
@@ -447,3 +453,4 @@ Lua files for this pass were parsed as Lua 5.1. The Ashenvale pin and the path r
 - 2026-10-06: A quest accepted after a camp is finished is its own step. That camp stays checked with the objectives it finished. The follow-up of the quest just turned in is accepted when its name continues that quest.
 - 2026-10-06: An objective keeps its count and also reads (Completed) in green when it is done. A checkbox beside the count completes it. Sell junk can be skipped that way. The step advances when every objective on it is complete.
 - 2026-10-06: Ordanus points at Raynewood Retreat in Ashenvale, about 61, 52. From Stonetalon the step is Go to Ashenvale. The hand-in stays Sun Rock Retreat. While an earlier step is on screen, the live step stays the next path row.
+- 2026-10-06: A dungeon is on the path only inside its Group Finder range. Gnomeregan and Razorfen Kraul start at 29. At 28 the dungeon is Blackfathom Deeps.

@@ -53,12 +53,12 @@ Use the tighter band when sources disagree. Entrance coordinates are Classic-kno
 | Ruins of Lordaeron | 15–20 | Tirisfal, Horde-leaning | Forever, stub quests |
 | Deadmines | 16–22 | Alliance, Westfall | Quest chain + caster/melee rewards |
 | Wailing Caverns | 17–24 | Barrens | Druid quest, weapons |
-| Shadowfang Keep | 18–26 | Silverpine | Weapons, caster offhands |
-| Blackfathom Deeps | 20–28 | Ashenvale | Quest XP |
-| Stockades | 22–28 | Alliance, Stormwind | Fast quests |
-| Gnomeregan | 24–32 | Dun Morogh | Quest chain |
-| Excavation Site | 24–31 | Wetlands | Forever, stub |
-| Razorfen Kraul | 24–32 | Barrens | Quest |
+| Shadowfang Keep | 20–30 | Silverpine | Weapons, caster offhands |
+| Blackfathom Deeps | 24–32 | Ashenvale | Quest XP |
+| Stockades | 24–32 | Alliance, Stormwind | Fast quests |
+| Gnomeregan | 29–38 | Dun Morogh | Quest chain. Finder lists it from 29. |
+| Excavation Site | 26–33 | Wetlands | Forever, stub. Finder lists 26–33. |
+| Razorfen Kraul | 29–38 | Barrens | Quest. Finder lists it from 29. |
 | City of Dalaran | 28–33 | Alterac | Forever, stub |
 | Scarlet Monastery | 30–42 | Tirisfal | Library/armory/cath quests, BiS pieces |
 | Razorfen Downs | 35–45 | Barrens | Quest |
