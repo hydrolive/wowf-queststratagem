@@ -298,6 +298,31 @@ function Api.LogCount()
     return 0
 end
 
+local function BoardObjectives(logIndex)
+    local objectives = {}
+    if not (GetNumQuestLeaderBoards and GetQuestLogLeaderBoard and logIndex) then
+        return objectives
+    end
+    local num = GetNumQuestLeaderBoards(logIndex) or 0
+    for j = 1, num do
+        local text, _, finished = GetQuestLogLeaderBoard(j, logIndex)
+        local have, need = 0, 0
+        if type(text) == "string" then
+            local h, n = text:match("(%d+)%s*/%s*(%d+)")
+            if h then
+                have, need = tonumber(h) or 0, tonumber(n) or 0
+            end
+        end
+        objectives[#objectives + 1] = {
+            text = text,
+            finished = finished and true or false,
+            have = have,
+            need = need,
+        }
+    end
+    return objectives
+end
+
 local function ReadObjectives(questID, logIndex)
     local objectives = {}
     if C_QuestLog and C_QuestLog.GetQuestObjectives and questID then
@@ -312,29 +337,29 @@ local function ReadObjectives(questID, logIndex)
                     need = o.numRequired or 0,
                 }
             end
-            if #objectives > 0 then
-                return objectives
-            end
         end
     end
-    if GetNumQuestLeaderBoards and GetQuestLogLeaderBoard and logIndex then
-        local num = GetNumQuestLeaderBoards(logIndex) or 0
-        for j = 1, num do
-            local text, _, finished = GetQuestLogLeaderBoard(j, logIndex)
-            local have, need = 0, 0
-            if type(text) == "string" then
-                local h, n = text:match("(%d+)%s*/%s*(%d+)")
-                if h then
-                    have, need = tonumber(h) or 0, tonumber(n) or 0
+    local board = BoardObjectives(logIndex)
+    if #objectives == 0 then
+        return board
+    end
+    if #board == #objectives then
+        for j = 1, #board do
+            local fresh = board[j]
+            local cached = objectives[j]
+            if (fresh.have or 0) > (cached.have or 0) or (fresh.finished and not cached.finished) then
+                cached.have = fresh.have
+                if (fresh.need or 0) > 0 then
+                    cached.need = fresh.need
+                end
+                cached.finished = fresh.finished
+                if type(fresh.text) == "string" and fresh.text ~= "" then
+                    cached.text = fresh.text
                 end
             end
-            objectives[#objectives + 1] = {
-                text = text,
-                finished = finished and true or false,
-                have = have,
-                need = need,
-            }
         end
+    elseif #board > #objectives then
+        return board
     end
     return objectives
 end

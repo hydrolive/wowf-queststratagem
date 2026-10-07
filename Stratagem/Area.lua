@@ -138,14 +138,30 @@ local function MakeRow(id, info)
     }
 end
 
+local function InThisZone(row)
+    if ZoneHere(row.zone) then
+        return true
+    end
+    if row.place and ZoneHere(row.place.placeName or row.place.zone) then
+        return true
+    end
+    return false
+end
+
 local function KeepRow(row)
-    if row.complete then
-        if ZoneHere(row.zone) then
-            return true
+    local here = InThisZone(row)
+    if row.complete and here then
+        return true
+    end
+    -- Below the fast band is not a new trip. A quest you are already
+    -- doing in the zone you are standing in stays on that camp.
+    if here and not row.complete then
+        if QS.Level and QS.Level.IsGrey then
+            if QS.Level.IsGrey({ kind = "accept", questLevel = row.level }) then
+                return false
+            end
         end
-        if row.place and ZoneHere(row.place.placeName or row.place.zone) then
-            return true
-        end
+        return true
     end
     if QS.Level and QS.Level.FastTitle then
         return QS.Level.FastTitle(row.title, row.level)
@@ -385,6 +401,17 @@ local function Describe(cluster, others, arrived)
     return text
 end
 
+local function ObjectiveLabel(text)
+    if type(text) ~= "string" then
+        return text
+    end
+    local stripped = string.match(text, "^%d+%s*/%s*%d+%s+(.+)$")
+    if stripped and stripped ~= "" then
+        return stripped
+    end
+    return text
+end
+
 local function GoalsFor(cluster)
     local goals = {}
     for i = 1, #cluster.rows do
@@ -397,7 +424,7 @@ local function GoalsFor(cluster)
                 local obj = row.objectives[j]
                 if not obj.finished then
                     goals[#goals + 1] = {
-                        name = obj.text or row.title,
+                        name = ObjectiveLabel(obj.text) or row.title,
                         have = obj.have or 0,
                         need = obj.need or 0,
                     }
@@ -502,7 +529,16 @@ local POCKETS = {
             x = 0.32,
             y = 0.68,
             order = 1,
-            patterns = { "bloodfury", "glittering sunstone", "incendrite" },
+            -- Harpies, the sunstone, and Incendrites are this valley.
+            -- New Life plants Gaea seeds here. Gathering them is the lake.
+            patterns = {
+                "bloodfury",
+                "glittering sunstone",
+                "incendrite",
+                "gaea seed planted",
+                "new life",
+                "elemental war",
+            },
             source = "wowhead-classic-6282",
         },
         {
@@ -514,6 +550,7 @@ local POCKETS = {
             y = 0.40,
             order = 2,
             patterns = { "gaea seed" },
+            unless = { "planted" },
             source = "warcraft-wiki-cycle-of-rebirth",
         },
         {
@@ -553,6 +590,13 @@ local function PocketBlob(row)
 end
 
 local function PocketScore(def, blob)
+    if def.unless then
+        for i = 1, #def.unless do
+            if string.find(blob, def.unless[i], 1, true) then
+                return 0
+            end
+        end
+    end
     local score = 0
     for i = 1, #def.patterns do
         if string.find(blob, def.patterns[i], 1, true) then
@@ -560,6 +604,18 @@ local function PocketScore(def, blob)
         end
     end
     return score
+end
+
+local function BestDef(defs, blob)
+    local best, bestScore
+    for i = 1, #defs do
+        local score = PocketScore(defs[i], blob)
+        if score > 0 and (not best or score > bestScore) then
+            best = defs[i]
+            bestScore = score
+        end
+    end
+    return best
 end
 
 local function WithPlace(name, placeName)
@@ -588,7 +644,7 @@ local function GoalsNamed(rows, placeName)
                 local obj = row.objectives[j]
                 if not obj.finished then
                     goals[#goals + 1] = {
-                        name = WithPlace(obj.text or row.title, placeName),
+                        name = WithPlace(ObjectiveLabel(obj.text) or row.title, placeName),
                         have = obj.have or 0,
                         need = obj.need or 0,
                     }
@@ -601,6 +657,37 @@ local function GoalsNamed(rows, placeName)
         end
     end
     return goals
+end
+
+function Area.RefreshStep(step, log)
+    if not step or step.kind ~= "area" or not step.placeName or not log then
+        return
+    end
+    local defs = POCKETS[step.zone]
+    if not defs then
+        return
+    end
+    local rows = {}
+    local raw = Rows(log)
+    for i = 1, #raw do
+        local row = raw[i]
+        if row.zone == step.zone then
+            local best = BestDef(defs, PocketBlob(row))
+            if best and best.name == step.placeName then
+                rows[#rows + 1] = row
+            end
+        end
+    end
+    if #rows == 0 then
+        return
+    end
+    local ids = {}
+    for i = 1, #rows do
+        ids[#ids + 1] = rows[i].id
+    end
+    table.sort(ids)
+    step.questIDs = ids
+    step.goals = GoalsNamed(rows, step.placeName)
 end
 
 local function ActivePockets(cluster, char)
@@ -641,16 +728,7 @@ local function ActivePockets(cluster, char)
     for i = 1, #cluster.rows do
         local row = cluster.rows[i]
         local blob = PocketBlob(row)
-        local best, bestScore
-        if defs then
-            for d = 1, #defs do
-                local score = PocketScore(defs[d], blob)
-                if score > 0 and (not best or score > bestScore) then
-                    best = defs[d]
-                    bestScore = score
-                end
-            end
-        end
+        local best = defs and BestDef(defs, blob)
         if best then
             local found = bucket(best)
             found.rows[#found.rows + 1] = row

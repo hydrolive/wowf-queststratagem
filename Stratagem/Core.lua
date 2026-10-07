@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.15"
+QS.VERSION = "0.1.16"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -201,21 +201,29 @@ function QS:Rebuild()
     local index = QS.Resume.Choose(built.steps, log, QS.char)
     local liveId = index and built.steps[index] and built.steps[index].id or nil
     if QS.char.historyAt and QS.char.history[QS.char.historyAt] then
-        local snap = QS.Resume.Snapshot(QS.char.history[QS.char.historyAt])
-        snap.review = true
-        local found = nil
-        for i = 1, #built.steps do
-            if built.steps[i].id == snap.id then
-                found = i
-            end
-        end
-        if not found then
-            table.insert(built.steps, 1, snap)
-            found = 1
+        local raw = QS.char.history[QS.char.historyAt]
+        if liveId and raw.id == liveId then
+            QS.char.historyAt = nil
         else
-            built.steps[found] = snap
+            local snap = QS.Resume.Snapshot(raw)
+            snap.review = true
+            if QS.Area and QS.Area.RefreshStep then
+                QS.Area.RefreshStep(snap, log)
+            end
+            local found = nil
+            for i = 1, #built.steps do
+                if built.steps[i].id == snap.id then
+                    found = i
+                end
+            end
+            if not found then
+                table.insert(built.steps, 1, snap)
+                found = 1
+            else
+                built.steps[found] = snap
+            end
+            index = found
         end
-        index = found
     end
     local prevId = QS.route and QS.route.stepId
     QS.route = built
@@ -446,11 +454,14 @@ function QS:OnEvent(event, arg1, arg2)
         QS:RequestRebuild()
         return
     end
-    if event == "QUEST_ACCEPTED" or event == "QUEST_FINISHED" or event == "QUEST_LOG_UPDATE" or event == "PLAYER_LEVEL_UP" then
+    if event == "UNIT_QUEST_LOG_CHANGED" and arg1 and arg1 ~= "player" then
+        return
+    end
+    if event == "QUEST_ACCEPTED" or event == "QUEST_FINISHED" or event == "QUEST_LOG_UPDATE" or event == "PLAYER_LEVEL_UP" or event == "QUEST_WATCH_UPDATE" or event == "UNIT_QUEST_LOG_CHANGED" then
         if QS.scanningLog then
             return
         end
-        if event == "QUEST_LOG_UPDATE" or event == "QUEST_FINISHED" then
+        if event == "QUEST_LOG_UPDATE" or event == "QUEST_FINISHED" or event == "QUEST_WATCH_UPDATE" or event == "UNIT_QUEST_LOG_CHANGED" then
             local now = QS.Api.ReadLog()
             DiffTurnIns(now)
             DiffObjectives(now)
@@ -647,6 +658,8 @@ SafeRegister(frame, "QUEST_ACCEPTED")
 SafeRegister(frame, "QUEST_TURNED_IN")
 SafeRegister(frame, "QUEST_FINISHED")
 SafeRegister(frame, "QUEST_LOG_UPDATE")
+SafeRegister(frame, "QUEST_WATCH_UPDATE")
+SafeRegister(frame, "UNIT_QUEST_LOG_CHANGED")
 SafeRegister(frame, "QUEST_REMOVED")
 SafeRegister(frame, "QUEST_QUERY_COMPLETE")
 SafeRegister(frame, "ZONE_CHANGED_NEW_AREA")

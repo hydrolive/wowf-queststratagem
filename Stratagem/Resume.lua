@@ -518,24 +518,42 @@ function Resume.RouteLine(char, step, log)
     return table.concat(parts, "  ")
 end
 
+local function CopyGoals(step)
+    if not step.goals then
+        return nil
+    end
+    local goals = {}
+    for i = 1, #step.goals do
+        local goal = step.goals[i]
+        goals[i] = { name = goal.name, have = goal.have, need = goal.need }
+    end
+    return goals
+end
+
+local function CopyIds(step)
+    if not step.questIDs then
+        return nil
+    end
+    local ids = {}
+    for i = 1, #step.questIDs do
+        ids[i] = step.questIDs[i]
+    end
+    return ids
+end
+
 function Resume.Snapshot(step)
     local copy = {}
     for i = 1, #SNAP_KEYS do
         local key = SNAP_KEYS[i]
         copy[key] = step[key]
     end
-    if step.goals then
-        copy.goals = {}
-        for i = 1, #step.goals do
-            local goal = step.goals[i]
-            copy.goals[i] = { name = goal.name, have = goal.have, need = goal.need }
-        end
+    local goals = CopyGoals(step)
+    if goals then
+        copy.goals = goals
     end
-    if step.questIDs then
-        copy.questIDs = {}
-        for i = 1, #step.questIDs do
-            copy.questIDs[i] = step.questIDs[i]
-        end
+    local ids = CopyIds(step)
+    if ids then
+        copy.questIDs = ids
     end
     return copy
 end
@@ -549,6 +567,20 @@ function Resume.Remember(char, step)
     end
     local last = char.history[#char.history]
     if last and last.id == step.id then
+        local goals = CopyGoals(step)
+        if goals then
+            last.goals = goals
+        end
+        local ids = CopyIds(step)
+        if ids then
+            last.questIDs = ids
+        end
+        if step.title then
+            last.title = step.title
+        end
+        if step.text then
+            last.text = step.text
+        end
         if char.pendingClear and char.pendingClear.id == step.id then
             last.clear = char.pendingClear.clear
             char.pendingClear = nil

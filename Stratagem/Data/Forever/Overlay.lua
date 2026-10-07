@@ -1,4 +1,11 @@
 -- Stratagem changelog
+-- 0.1.16 (2026-10-06)
+-- The Charred Vale counts follow the quest log when a harpy dies.
+-- Reviewing the camp you are on returns to the live step. An earlier
+-- camp still reads its counts from the log. Incendrites and planting
+-- Gaea seeds are the vale. Gathering Gaea seeds stays at Mirkfallon
+-- Lake. A quest more than two levels below you stays on the camp while
+-- you are standing in its zone. It still does not start a new trip.
 -- 0.1.15 (2026-10-06)
 -- Quests that were on the log and have left it sit above the starter
 -- chain, under the turn-ins from this session. A name the client returns

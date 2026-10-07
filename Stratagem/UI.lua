@@ -427,6 +427,9 @@ function UI:FitGoals(shown)
     if size == "large" and shown and shown > 5 then
         h = h + (shown - 5) * 16
     end
+    if size == "large" and shown and shown >= 5 then
+        h = h + 20
+    end
     self.frame:SetHeight(h)
 end
 

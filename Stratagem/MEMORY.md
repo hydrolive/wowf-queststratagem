@@ -310,6 +310,14 @@ A quest that was on the log and has since left it is listed above the starter ch
 
 Lua files for this pass were parsed as Lua 5.1. The path order was executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.16
+
+Killing a Bloodfury Harpy updates The Charred Vale counts from the quest log. Review had kept the counts from when that camp was stored. Reviewing the camp you are on returns to the live step. Reviewing an earlier camp still reads that camp's counts from the log. The objective name does not repeat the count. The data line stays under the last objective.
+
+Elemental War (Incendrites) and New Life (Gaea seed planted) belong in The Charred Vale with the Bloodfury kills and the Glittering Sunstone. Cycle of Rebirth, gathering Gaea seeds, stays at Mirkfallon Lake. A quest more than two levels below you still does not start a trip from another zone. While you are standing in its zone and it is still in color, it stays on that camp. At 29 in the vale, those level 25 and 26 quests stay there.
+
+Lua files for this pass were parsed as Lua 5.1. The vale camps, the kill counts, and a stale objective read were executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -360,3 +368,4 @@ Lua files for this pass were parsed as Lua 5.1. The path order was executed outs
 - 2026-10-06: The fast band is two levels below through one level above. Elites wait until you reach their level. At 27 the road is Thousand Needles. Path shows that road as level/60.
 - 2026-10-06: Path is a percent of the road, about half at the end of level 27, one row per quest. Next on a flight assumes you have landed, and the arrow points at one overlapping camp.
 - 2026-10-06: The path puts recent turn-ins against the current step and leaves starter quests at the top. A class trainer follows the current camp when the next even level is close. The camp keeps the arrow until it is finished. Quests that were on the log and have left it sit between those two.
+- 2026-10-06: The Charred Vale keeps the quests you are doing there, including Incendrites and planting Gaea seeds. Kill counts follow the quest log. Gathering Gaea seeds stays at Mirkfallon Lake. A low-level quest still does not start a trip from another zone.
