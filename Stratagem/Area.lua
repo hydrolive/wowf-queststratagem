@@ -746,12 +746,40 @@ local function PreviousGoals(id)
     return nil
 end
 
+local function SellJunkDone()
+    local bags = QS.Api and QS.Api.Bags and QS.Api.Bags()
+    if type(bags) ~= "table" or type(bags.list) ~= "table" then
+        return false
+    end
+    if #bags.list == 0 and (tonumber(bags.free) or 0) <= 0 then
+        return false
+    end
+    for i = 1, #bags.list do
+        local item = bags.list[i]
+        if item and item.quality == 0 then
+            return false
+        end
+    end
+    return true
+end
+
+local function ApplySellJunk(goal)
+    if SellJunkDone() then
+        goal.have = 1
+        goal.need = 1
+        goal.count = "(Completed)"
+    else
+        goal.have = 0
+        goal.need = 1
+        goal.count = nil
+    end
+end
+
 function Area.RefreshStep(step, log)
     if not step or not log then
         return
     end
     -- A quest that left the log stays on the turn-in as (Completed).
-    -- Sell junk has no quest id, so it stays 0/1.
     if step.handIn and step.goals then
         for i = 1, #step.goals do
             local goal = step.goals[i]
@@ -760,6 +788,8 @@ function Area.RefreshStep(step, log)
                 goal.have = 1
                 goal.need = goal.need or 1
                 goal.count = "(Completed)"
+            elseif goal.name == "Sell junk" then
+                ApplySellJunk(goal)
             end
         end
         return
@@ -936,7 +966,9 @@ local function HandInStep(cluster, pocket)
             need = 1,
         }
     end
-    goals[#goals + 1] = { name = "Sell junk", have = 0, need = 1 }
+    local sell = { name = "Sell junk" }
+    ApplySellJunk(sell)
+    goals[#goals + 1] = sell
     local hub = pocket.hub
     local text = "These " .. pocket.name .. " quests are finished. Hand these in after " .. pocket.name .. "."
     if type(hub) == "string" and hub ~= "" then

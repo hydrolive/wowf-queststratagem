@@ -1,4 +1,8 @@
 -- Stratagem changelog
+-- 0.1.22 (2026-10-06)
+-- Back from a camp turn-in opens the camp. An older single-quest
+-- turn-in for that camp stays an objective on the current step.
+-- Sell junk reads (Completed) when the bags have no poor items.
 -- 0.1.21 (2026-10-06)
 -- One camp's turn-ins are one step. Each quest is an objective, and
 -- Sell junk is the last objective rather than its own path step.

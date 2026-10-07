@@ -651,22 +651,50 @@ local function LiveStepId()
     return route.liveId or route.stepId
 end
 
+-- A single quest saved before that camp's turn-ins were one step.
+local function CoveredHandIn(row)
+    if not row or type(row.id) ~= "string" then
+        return false
+    end
+    local steps = QS.route and QS.route.steps
+    if not steps then
+        return false
+    end
+    for i = 1, #steps do
+        local step = steps[i]
+        if step.handIn and type(step.id) == "string" and row.id ~= step.id then
+            if string.sub(row.id, 1, #step.id + 1) == step.id .. "-" then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function PreviousAt(char, from)
+    local live = LiveStepId()
+    local at = from or 0
+    while at >= 1 do
+        local row = char.history[at]
+        local liveRow = live and row and row.id == live
+        if row and not liveRow and not CoveredHandIn(row) then
+            return at
+        end
+        at = at - 1
+    end
+    return nil
+end
+
 function Resume.CanBack(char)
     char = char or QS.char
     if not char or type(char.history) ~= "table" then
         return false
     end
+    local from = #char.history
     if char.historyAt then
-        return char.historyAt > 1
+        from = char.historyAt - 1
     end
-    if #char.history == 0 then
-        return false
-    end
-    local live = LiveStepId()
-    if #char.history == 1 and live and char.history[1].id == live then
-        return false
-    end
-    return true
+    return PreviousAt(char, from) ~= nil
 end
 
 local function RememberBack(char, shown, clear)
@@ -694,23 +722,24 @@ function Resume.Next()
         return
     end
     if char.historyAt then
-        if char.historyAt < #char.history then
-            local nxt = char.historyAt + 1
-            local live = LiveStepId()
+        local nxt = char.historyAt + 1
+        local live = LiveStepId()
+        while nxt <= #char.history do
             local row = char.history[nxt]
             if live and row and row.id == live then
-                char.historyAt = nil
-                char.manualStepId = nil
-                char.manualFrontierId = nil
-            else
+                nxt = #char.history + 1
+            elseif not CoveredHandIn(row) then
                 char.historyAt = nxt
                 ReleaseSkip(char, row)
+                QS:Rebuild()
+                return
+            else
+                nxt = nxt + 1
             end
-        else
-            char.historyAt = nil
-            char.manualStepId = nil
-            char.manualFrontierId = nil
         end
+        char.historyAt = nil
+        char.manualStepId = nil
+        char.manualFrontierId = nil
         QS:Rebuild()
         return
     end
@@ -773,23 +802,16 @@ function Resume.Back()
     if type(char.history) ~= "table" then
         return
     end
-    if not char.historyAt then
-        local at = #char.history
-        local live = LiveStepId()
-        if live and at > 0 and char.history[at].id == live then
-            at = at - 1
-        end
-        if at < 1 then
-            return
-        end
-        char.historyAt = at
-    else
-        if char.historyAt <= 1 then
-            return
-        end
-        char.historyAt = char.historyAt - 1
+    local from = #char.history
+    if char.historyAt then
+        from = char.historyAt - 1
     end
-    local snap = char.history[char.historyAt]
+    local at = PreviousAt(char, from)
+    if not at then
+        return
+    end
+    char.historyAt = at
+    local snap = char.history[at]
     ReleaseSkip(char, snap)
     if snap and snap.kind == "travel" and snap.completeOnZone
         and char.assumeZone == snap.completeOnZone then

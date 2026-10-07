@@ -348,6 +348,12 @@ Quests turned in from the same camp are one step. The Charred Vale step is Turn 
 
 Lua files for this pass were parsed as Lua 5.1. The combined turn-in, the camp row, and the status line were executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.22
+
+Back from Turn in Charred Vale quests opens Go to The Charred Vale. Turn in Bloodfury Trinkets stays an objective on the current step. Sell junk reads (Completed) when the bags have no poor-quality items. The status step number is the row of the step on screen.
+
+Lua files for this pass were parsed as Lua 5.1. Back past the old single turn-in, and Sell junk after the greys are gone, were executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -404,3 +410,4 @@ Lua files for this pass were parsed as Lua 5.1. The combined turn-in, the camp r
 - 2026-10-06: A camp moves to its turn-in when every objective is finished. It stays up while any objective is still open.
 - 2026-10-06: A finished camp is not pinned by an older manual step. Area and Already done name the zone and the path step. Last leg is the recorded step time. Auto pick reward can be turned off.
 - 2026-10-06: One camp's turn-ins are one step, with Sell junk as an objective. A finished camp stays checked in the path. The status line names that step and its path number. The Charred Vale hand-in names Sun Rock Retreat and has no new pin.
+- 2026-10-06: Back from a grouped turn-in opens the camp. A single quest saved for that camp stays an objective. Sell junk is complete when no poor items remain.

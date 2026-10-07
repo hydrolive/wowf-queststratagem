@@ -611,7 +611,7 @@ function UI:Refresh()
     if route and QS.Resume and QS.Resume.PathRows then
         local rows, focus = QS.Resume.PathRows(route)
         route.pathStep = focus
-        route.viewStep = focus
+        route.viewStep = nil
         if step and step.id then
             for i = 1, #rows do
                 if rows[i].id == step.id then
@@ -619,6 +619,9 @@ function UI:Refresh()
                     break
                 end
             end
+        end
+        if not route.viewStep and not (step and step.review) then
+            route.viewStep = focus
         end
     end
     local statusLog = log or { inLog = {}, completed = {} }
