@@ -564,6 +564,10 @@ local POCKETS = {
             name = "The Charred Vale",
             where = "south of Sun Rock Retreat",
             hub = "Sun Rock Retreat",
+            -- Flight path named Sun Rock Retreat, in-game map 45.2, 59.9.
+            -- The inn is Jayka at 47.5, 62.1 and is not this pin.
+            hubX = 0.452,
+            hubY = 0.599,
             mapID = 1442,
             x = 0.32,
             y = 0.68,
@@ -1067,6 +1071,8 @@ local function ActivePockets(cluster, char)
                 order = def.order or 50,
                 source = def.source,
                 hub = def.hub,
+                hubX = def.hubX,
+                hubY = def.hubY,
                 rows = {},
             }
             buckets[def.key] = found
@@ -1130,7 +1136,7 @@ local function ShortPlace(name)
     return name
 end
 
--- One step for every ready quest in the camp. No pin: the hub is a name only.
+-- One step for every ready quest in the camp. A published hub gets the pin.
 local function HandInStep(cluster, pocket)
     local ready = {}
     for i = 1, #pocket.rows do
@@ -1218,6 +1224,13 @@ local function HandInStep(cluster, pocket)
     }
     if type(hub) == "string" and hub ~= "" then
         step.turnInAt = hub
+    end
+    if pocket.hubX and pocket.hubY and pocket.mapID then
+        step.mapID = pocket.mapID
+        step.x = pocket.hubX
+        step.y = pocket.hubY
+        step.pin = "approx"
+        step.text = step.text .. " The arrow points there."
     end
     return step
 end

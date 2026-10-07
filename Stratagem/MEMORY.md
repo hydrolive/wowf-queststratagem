@@ -344,7 +344,7 @@ Lua files for this pass were parsed as Lua 5.1. The released camp, the leg time,
 
 ## Implemented in 0.1.21
 
-Quests turned in from the same camp are one step. The Charred Vale step is Turn in Charred Vale quests. Each quest is an objective, and Sell junk is the last objective. Sell junk is not its own path step. A repair step remains when gear is damaged. The Charred Vale turn-in names Sun Rock Retreat and adds no pin. A finished camp stays a checked path row just above the current step, including while you review it. The status line names the step on screen and its path number, such as Go to The Charred Vale - Step 29 or Turn in at Sun Rock Retreat - Step 30. A quest that has left the log stays on that turn-in as (Completed).
+Quests turned in from the same camp are one step. The Charred Vale step is Turn in Charred Vale quests. Each quest is an objective, and Sell junk is the last objective. Sell junk is not its own path step. A repair step remains when gear is damaged. The Charred Vale turn-in names Sun Rock Retreat and the arrow points there, about 45.2, 59.9. That pin is the flight path, not the inn. A finished camp stays a checked path row just above the current step, including while you review it. The status line names the step on screen and its path number, such as Go to The Charred Vale - Step 29 or Turn in at Sun Rock Retreat - Step 30. A quest that has left the log stays on that turn-in as (Completed).
 
 Lua files for this pass were parsed as Lua 5.1. The combined turn-in, the camp row, and the status line were executed outside the client. Nobody logged the character in during this pass.
 
@@ -371,6 +371,12 @@ Lua files for this pass were parsed as Lua 5.1. The checkbox, the count, and the
 The path number is that step's row. Steps you already walked stay in that order, immediately above the current step. A quest turned in earlier, whose clock time is later, no longer sits between the camp you just left and the step you are on. Back from the current step opens the previous row.
 
 Lua files for this pass were parsed as Lua 5.1. The path order, one Back, and the objective checkbox were executed outside the client. Nobody logged the character in during this pass.
+
+## Implemented in 0.1.26
+
+The Charred Vale turn-in points at Sun Rock Retreat. The pin is the flight path, about 45.2, 59.9 on the Stonetalon map. It is not the inn. Back onto the camp still points at the vale.
+
+Lua files for this pass were parsed as Lua 5.1. The retreat pin and the camp pin were executed outside the client. Nobody logged the character in during this pass.
 
 ## Still todo
 
@@ -424,6 +430,7 @@ Lua files for this pass were parsed as Lua 5.1. The path order, one Back, and th
 - 2026-10-06: The path puts recent turn-ins against the current step and leaves starter quests at the top. A class trainer follows the current camp when the next even level is close. The camp keeps the arrow until it is finished. Quests that were on the log and have left it sit between those two.
 - 2026-10-06: The Charred Vale keeps the quests you are doing there, including Incendrites and planting Gaea seeds. Kill counts follow the quest log. Gathering Gaea seeds stays at Mirkfallon Lake. A low-level quest still does not start a trip from another zone.
 - 2026-10-06: Walked steps stay in the order they were done, immediately above the current step. Back shows that previous path number.
+- 2026-10-06: The Charred Vale turn-in points at Sun Rock Retreat, the flight path at about 45.2, 59.9. The inn is not the pin. Back onto the camp still points at the vale.
 - 2026-10-06: A finished camp objective stays at its count. The hand-in is the next step.
 - 2026-10-06: A finished objective stays on the step and reads (Completed) in green. Back still lists it.
 - 2026-10-06: A camp moves to its turn-in when every objective is finished. It stays up while any objective is still open.

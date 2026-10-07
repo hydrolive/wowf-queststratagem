@@ -653,6 +653,12 @@ function Resume.Remember(char, step)
         if step.turnInAt then
             last.turnInAt = step.turnInAt
         end
+        if step.mapID and step.x and step.y then
+            last.mapID = step.mapID
+            last.x = step.x
+            last.y = step.y
+            last.pin = step.pin
+        end
         if char.pendingClear and char.pendingClear.id == step.id then
             last.clear = char.pendingClear.clear
             char.pendingClear = nil

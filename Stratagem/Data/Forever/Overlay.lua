@@ -1,4 +1,7 @@
 -- Stratagem changelog
+-- 0.1.26 (2026-10-06)
+-- The Charred Vale turn-in points at Sun Rock Retreat.
+-- Back still points at the camp.
 -- 0.1.25 (2026-10-06)
 -- The step you just finished stays on the path row above the
 -- current step. Back shows that row's number.
