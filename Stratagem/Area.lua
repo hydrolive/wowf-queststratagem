@@ -618,6 +618,28 @@ local POCKETS = {
             patterns = { "super reaper", "venture co" },
             source = "forever-codex-stonetalon",
         },
+        {
+            key = "raynewood",
+            name = "Raynewood Retreat",
+            -- The log zone stays Stonetalon. The head is in Ashenvale.
+            zone = "Ashenvale",
+            where = "Ashenvale, the top of the great tree",
+            hub = "Sun Rock Retreat",
+            -- Braelyn Firehand takes the head at Sun Rock Retreat.
+            -- Same flight path as the vale hand-in, not the inn.
+            hubMap = 1442,
+            hubX = 0.452,
+            hubY = 0.599,
+            -- Classic comments put Keeper Ordanus at about 61, 52
+            -- on the Ashenvale map. uiMap 1440 is the one Blackfathom uses.
+            -- Not the later 62.1, 51.3, and not a guessed interior.
+            mapID = 1440,
+            x = 0.61,
+            y = 0.52,
+            order = 5,
+            patterns = { "ordanus" },
+            source = "wowhead-classic-ordanus",
+        },
     },
 }
 
@@ -1004,7 +1026,8 @@ function Area.RefreshStep(step, log)
     if step.kind ~= "area" or not step.placeName then
         return
     end
-    local defs = POCKETS[step.zone]
+    local zone = step.logZone or step.zone
+    local defs = POCKETS[zone]
     if not defs then
         return
     end
@@ -1019,7 +1042,7 @@ function Area.RefreshStep(step, log)
     local raw = Rows(log)
     for i = 1, #raw do
         local row = raw[i]
-        if row.zone == step.zone then
+        if row.zone == zone then
             local best = BestDef(defs, PocketBlob(row))
             if best and best.name == step.placeName and (not owned or owned[row.id]) then
                 rows[#rows + 1] = row
@@ -1071,8 +1094,10 @@ local function ActivePockets(cluster, char)
                 order = def.order or 50,
                 source = def.source,
                 hub = def.hub,
+                hubMap = def.hubMap,
                 hubX = def.hubX,
                 hubY = def.hubY,
+                zone = def.zone,
                 rows = {},
             }
             buckets[def.key] = found
@@ -1225,8 +1250,9 @@ local function HandInStep(cluster, pocket)
     if type(hub) == "string" and hub ~= "" then
         step.turnInAt = hub
     end
-    if pocket.hubX and pocket.hubY and pocket.mapID then
-        step.mapID = pocket.mapID
+    local hubMap = pocket.hubMap or pocket.mapID
+    if pocket.hubX and pocket.hubY and hubMap then
+        step.mapID = hubMap
         step.x = pocket.hubX
         step.y = pocket.hubY
         step.pin = "approx"
@@ -1241,16 +1267,24 @@ local function PocketStep(cluster, pocket, rows, spec)
     local place = QS.Api and QS.Api.Place and QS.Api.Place()
     local sub = place and place.sub or ""
     local standing = sub == pocket.name or ZoneHere(pocket.name)
+    local away = pocket.zone and (pocket.zone ~= cluster.zone) and (not ZoneHere(pocket.zone))
     local title = spec.title
     if not title then
-        title = pocket.name
-        if not standing then
+        if standing then
+            title = pocket.name
+        elseif away then
+            title = "Go to " .. pocket.zone
+        else
             title = "Go to " .. pocket.name
         end
     end
     local text = spec.text
     if not text then
-        text = "These overlap in " .. pocket.name .. ", " .. (pocket.where or pocket.name) .. "."
+        if away or (pocket.zone and pocket.zone ~= cluster.zone) then
+            text = pocket.name .. " is in " .. (pocket.where or pocket.zone) .. "."
+        else
+            text = "These overlap in " .. pocket.name .. ", " .. (pocket.where or pocket.name) .. "."
+        end
         if pocket.x then
             text = text .. " The arrow points there."
         else
@@ -1275,7 +1309,8 @@ local function PocketStep(cluster, pocket, rows, spec)
         kind = "area",
         title = title,
         text = text,
-        zone = cluster.zone,
+        zone = pocket.zone or cluster.zone,
+        logZone = cluster.zone,
         placeName = pocket.name,
         questIDs = ids,
         goalHeader = "Area",
@@ -1579,6 +1614,11 @@ function Area.Apply(built, char, log)
             return
         end
         local here = TripArrived(char, chosen.zone)
+        -- A head that is logged in this zone but found in another one
+        -- should not send you back once you are already there.
+        if not here and lead and lead.zone and TripArrived(char, lead.zone) then
+            here = true
+        end
         if lead and not here then
             block[#block + 1] = TravelStep(chosen, tail, lead)
         end

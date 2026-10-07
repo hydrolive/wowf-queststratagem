@@ -437,7 +437,7 @@ local SNAP_KEYS = {
     "id", "title", "text", "zone", "placeName", "mapID", "x", "y", "pin", "npc", "kind",
     "questID", "questName", "cluster", "goalHeader", "areaTurnin",
     "confidence", "where", "completeOnZone",
-    "pocket", "handIn", "turnInAt",
+    "pocket", "handIn", "turnInAt", "logZone",
 }
 
 local CHECK = "|TInterface\\RaidFrame\\ReadyCheck-Ready:12|t "
@@ -658,6 +658,15 @@ function Resume.Remember(char, step)
             last.x = step.x
             last.y = step.y
             last.pin = step.pin
+        end
+        if step.zone then
+            last.zone = step.zone
+        end
+        if step.logZone then
+            last.logZone = step.logZone
+        end
+        if step.placeName then
+            last.placeName = step.placeName
         end
         if char.pendingClear and char.pendingClear.id == step.id then
             last.clear = char.pendingClear.clear
@@ -1424,6 +1433,11 @@ function Resume.PathRows(route)
     end
 
     local aheadCount = 0
+    local liveId = route and route.liveId
+    local screen = index and steps[index]
+    -- One gold row. While an earlier step is on screen, the live step
+    -- stays in the list as the next row instead of being dropped.
+    local reviewing = liveId and screen and screen.id ~= liveId
     for i = 1, #steps do
         local step = steps[i]
         local show = true
@@ -1433,10 +1447,11 @@ function Resume.PathRows(route)
             show = false
         end
         if show then
-            local liveId = route and route.liveId
             local state = "ahead"
             if liveId and step.id == liveId then
-                state = "now"
+                if not reviewing then
+                    state = "now"
+                end
             elseif IsPocket(step) and Resume.Done(step, log) then
                 state = "done"
             elseif i == index then

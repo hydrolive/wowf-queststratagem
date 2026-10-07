@@ -183,6 +183,7 @@ Three Forever hand-ins are stored from public pages, matched by the quest title 
 - Elder Knowledge turns in to Bashana Runetotem, in a tent on the Elder Rise in Thunder Bluff, reported at 70.8, 33.7. That is not the inn on the lower rise. The same page reported that the follow-up, Earthen Echo, still asked for the Titan Relic. The step says to read the reward before flying to Mulgore.
 - Earthen Echo turns in to Muln Earthfury, in the biggest tent on Skywatcher Plateau, northwest Mulgore, reported at 33.4, 22.4. Climb from the north ridge, about 39.7, 16.9. Bashana Runetotem in Thunder Bluff only starts it. If the Titan Relic is missing, abandon Earthen Echo and accept it again from Bashana. She gives the relic back. Source: realmfirst.net dungeon quests, 2026-10-04, and the Wowhead Forever quest page. The step uses the quest id already in the log.
 - The same NPC offers Defending the Dead (level 30, requires 23, no public quest id, accepted by title) and The Broodmother (quest 96261, level 31 elite, requires 23). The kill is Broodmother Valraxx at Gloomrise. Gloomrise has no published pin, so the arrow stays on Muln. These are not treated as skippable. Once they are in the log they share Muln's area with Earthen Echo. Child of Nature on that NPC is a level 10 druid quest. Stronger than Steel, A Darker Truth, Talkin' bout Toxins, and Mon are level-range Mulgore quests with no published giver, so they are not routed and not marked skippable.
+- Ordanus stays under the Stonetalon log header. The head is Keeper Ordanus at Raynewood Retreat in Ashenvale, the top of the great tree, classic comments at about 61, 52. The Ashenvale map is 1440. From Stonetalon the step is Go to Ashenvale and the arrow points at that tree. The turn-in is still Braelyn Firehand at Sun Rock Retreat, the flight path at about 45.2, 59.9. That pin is not the inn, and it is not the later tree coordinate 62.1, 51.3. The step matches the title and the objective text. It keeps the quest id already in the log.
 
 A log quest with no stored note uses its own objective text. The addon does not fetch comments while you play.
 
@@ -378,6 +379,12 @@ The Charred Vale turn-in points at Sun Rock Retreat. The pin is the flight path,
 
 Lua files for this pass were parsed as Lua 5.1. The retreat pin and the camp pin were executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.27
+
+Ordanus is the trip to Ashenvale. The step is Go to Ashenvale while you are still in Stonetalon, the objective stays Ordanus' Head, and the arrow points at Raynewood Retreat, about 61, 52. The status line reads Area · Ashenvale. Once you are in Ashenvale the title becomes Go to Raynewood Retreat, and at the tree it is the retreat name. The hand-in still points at Sun Rock Retreat. While you review an earlier step, that step is the gold row and the live step stays on the path as the next row under it.
+
+Lua files for this pass were parsed as Lua 5.1. The Ashenvale pin and the path row were executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -439,3 +446,4 @@ Lua files for this pass were parsed as Lua 5.1. The retreat pin and the camp pin
 - 2026-10-06: Back from a grouped turn-in opens the camp. A single quest saved for that camp stays an objective. Sell junk is complete when no poor items remain.
 - 2026-10-06: A quest accepted after a camp is finished is its own step. That camp stays checked with the objectives it finished. The follow-up of the quest just turned in is accepted when its name continues that quest.
 - 2026-10-06: An objective keeps its count and also reads (Completed) in green when it is done. A checkbox beside the count completes it. Sell junk can be skipped that way. The step advances when every objective on it is complete.
+- 2026-10-06: Ordanus points at Raynewood Retreat in Ashenvale, about 61, 52. From Stonetalon the step is Go to Ashenvale. The hand-in stays Sun Rock Retreat. While an earlier step is on screen, the live step stays the next path row.

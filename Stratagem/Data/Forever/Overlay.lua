@@ -1,4 +1,7 @@
 -- Stratagem changelog
+-- 0.1.27 (2026-10-06)
+-- Ordanus sends you to Ashenvale. The arrow points at
+-- Raynewood Retreat. Back keeps that live step on the path.
 -- 0.1.26 (2026-10-06)
 -- The Charred Vale turn-in points at Sun Rock Retreat.
 -- Back still points at the camp.
