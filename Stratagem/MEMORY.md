@@ -354,6 +354,12 @@ Back from Turn in Charred Vale quests opens Go to The Charred Vale. Turn in Bloo
 
 Lua files for this pass were parsed as Lua 5.1. Back past the old single turn-in, and Sell junk after the greys are gone, were executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.23
+
+A quest accepted after a camp is finished is its own step. The Charred Vale keeps the objectives it already finished, and that camp stays a checked path row. The new step lists only the new quest. If the camp's turn-ins are still open, they stay the current step and the new quest comes after them. The follow-up of the quest just turned in is accepted when its name continues that quest. The same pin is used. No new hub is added.
+
+Lua files for this pass were parsed as Lua 5.1. The separate visit and the follow-up accept were executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -411,3 +417,4 @@ Lua files for this pass were parsed as Lua 5.1. Back past the old single turn-in
 - 2026-10-06: A finished camp is not pinned by an older manual step. Area and Already done name the zone and the path step. Last leg is the recorded step time. Auto pick reward can be turned off.
 - 2026-10-06: One camp's turn-ins are one step, with Sell junk as an objective. A finished camp stays checked in the path. The status line names that step and its path number. The Charred Vale hand-in names Sun Rock Retreat and has no new pin.
 - 2026-10-06: Back from a grouped turn-in opens the camp. A single quest saved for that camp stays an objective. Sell junk is complete when no poor items remain.
+- 2026-10-06: A quest accepted after a camp is finished is its own step. That camp stays checked with the objectives it finished. The follow-up of the quest just turned in is accepted when its name continues that quest.

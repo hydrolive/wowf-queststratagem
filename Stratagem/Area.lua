@@ -676,6 +676,7 @@ local function GoalsNamed(rows, placeName)
             local obj = row.objectives[j]
             local goal = GoalCount(obj, row.complete)
             goal.name = WithPlace(ObjectiveLabel(obj.text) or row.title, placeName)
+            goal.questID = row.id
             goals[#goals + 1] = goal
             added = true
         end
@@ -683,12 +684,18 @@ local function GoalsNamed(rows, placeName)
             if row.complete then
                 goals[#goals + 1] = {
                     name = WithPlace(row.title, placeName),
+                    questID = row.id,
                     have = 1,
                     need = 1,
                     count = "(Completed)",
                 }
             else
-                goals[#goals + 1] = { name = WithPlace(row.title, placeName), have = 0, need = 1 }
+                goals[#goals + 1] = {
+                    name = WithPlace(row.title, placeName),
+                    questID = row.id,
+                    have = 0,
+                    need = 1,
+                }
             end
         end
     end
@@ -699,9 +706,16 @@ local function GoalKey(name)
     return string.lower(name or "")
 end
 
-local function KeepDone(previous, goals)
+local function KeepDone(previous, goals, ids)
     if not previous then
         return goals
+    end
+    local allowed
+    if ids then
+        allowed = {}
+        for i = 1, #ids do
+            allowed[ids[i]] = true
+        end
     end
     local seen = {}
     for i = 1, #goals do
@@ -712,9 +726,16 @@ local function KeepDone(previous, goals)
         local key = GoalKey(old.name)
         local full = old.need and old.need > 0 and (old.have or 0) >= old.need
         local done = old.count == "(Completed)" or old.count == "complete" or full
-        if done and key ~= "" and not seen[key] then
+        -- A quest from an earlier visit stays on that visit. A goal with no
+        -- quest id is an older snapshot and still belongs on this step.
+        local owned = true
+        if old.questID and allowed and not allowed[old.questID] then
+            owned = false
+        end
+        if done and owned and key ~= "" and not seen[key] then
             goals[#goals + 1] = {
                 name = old.name,
+                questID = old.questID,
                 have = old.have,
                 need = old.need,
                 count = "(Completed)",
@@ -725,25 +746,55 @@ local function KeepDone(previous, goals)
     return goals
 end
 
-local function PreviousGoals(id)
+local function PreviousStep(id)
     local route = QS.route
     if route and route.steps then
         for i = 1, #route.steps do
             local step = route.steps[i]
-            if step.id == id and step.goals then
-                return step.goals
+            if step.id == id then
+                return step
             end
         end
     end
     local hist = QS.char and QS.char.history
     if type(hist) == "table" then
         for i = #hist, 1, -1 do
-            if hist[i].id == id and hist[i].goals then
-                return hist[i].goals
+            if hist[i].id == id then
+                return hist[i]
             end
         end
     end
     return nil
+end
+
+local function PreviousGoals(id)
+    local step = PreviousStep(id)
+    if step and step.goals then
+        return step.goals
+    end
+    return nil
+end
+
+-- Quests this step already owned, including one that has since left the log.
+local function AllowIds(stepId, rowIds)
+    local seen = {}
+    local ids = {}
+    local function add(id)
+        if id ~= nil and not seen[id] then
+            seen[id] = true
+            ids[#ids + 1] = id
+        end
+    end
+    for i = 1, #rowIds do
+        add(rowIds[i])
+    end
+    local prev = PreviousStep(stepId)
+    if prev and prev.questIDs then
+        for i = 1, #prev.questIDs do
+            add(prev.questIDs[i])
+        end
+    end
+    return ids
 end
 
 local function SellJunkDone()
@@ -801,13 +852,20 @@ function Area.RefreshStep(step, log)
     if not defs then
         return
     end
+    local owned
+    if step.questIDs then
+        owned = {}
+        for i = 1, #step.questIDs do
+            owned[step.questIDs[i]] = true
+        end
+    end
     local rows = {}
     local raw = Rows(log)
     for i = 1, #raw do
         local row = raw[i]
         if row.zone == step.zone then
             local best = BestDef(defs, PocketBlob(row))
-            if best and best.name == step.placeName then
+            if best and best.name == step.placeName and (not owned or owned[row.id]) then
                 rows[#rows + 1] = row
             end
         end
@@ -820,8 +878,24 @@ function Area.RefreshStep(step, log)
         ids[#ids + 1] = rows[i].id
     end
     table.sort(ids)
+    local allow = ids
+    if step.questIDs then
+        allow = AllowIds(step.id, ids)
+        for i = 1, #step.questIDs do
+            local id = step.questIDs[i]
+            local seen = false
+            for j = 1, #allow do
+                if allow[j] == id then
+                    seen = true
+                end
+            end
+            if not seen then
+                allow[#allow + 1] = id
+            end
+        end
+    end
     step.questIDs = ids
-    step.goals = KeepDone(step.goals, GoalsNamed(rows, step.placeName))
+    step.goals = KeepDone(step.goals, GoalsNamed(rows, step.placeName), allow)
 end
 
 local function ActivePockets(cluster, char)
@@ -996,28 +1070,42 @@ local function HandInStep(cluster, pocket)
     return step
 end
 
-local function PocketStep(cluster, pocket)
+local function PocketStep(cluster, pocket, rows, spec)
+    rows = rows or pocket.rows
+    spec = spec or {}
     local place = QS.Api and QS.Api.Place and QS.Api.Place()
     local sub = place and place.sub or ""
     local standing = sub == pocket.name or ZoneHere(pocket.name)
-    local title = pocket.name
-    if not standing then
-        title = "Go to " .. pocket.name
+    local title = spec.title
+    if not title then
+        title = pocket.name
+        if not standing then
+            title = "Go to " .. pocket.name
+        end
     end
-    local text = "These overlap in " .. pocket.name .. ", " .. (pocket.where or pocket.name) .. "."
-    if pocket.x then
-        text = text .. " The arrow points there."
-    else
-        text = text .. " That spot has no published pin."
+    local text = spec.text
+    if not text then
+        text = "These overlap in " .. pocket.name .. ", " .. (pocket.where or pocket.name) .. "."
+        if pocket.x then
+            text = text .. " The arrow points there."
+        else
+            text = text .. " That spot has no published pin."
+        end
     end
     local ids = {}
-    for i = 1, #pocket.rows do
-        ids[#ids + 1] = pocket.rows[i].id
+    for i = 1, #rows do
+        ids[#ids + 1] = rows[i].id
     end
     table.sort(ids)
+    local stepId = spec.id or ("dyn-area-pocket-" .. pocket.id)
+    local named = GoalsNamed(rows, pocket.name)
+    local goals = named
+    if not spec.fresh then
+        goals = KeepDone(PreviousGoals(stepId), named, AllowIds(stepId, ids))
+    end
     local step = {
-        id = "dyn-area-pocket-" .. pocket.id,
-        pocket = pocket.id,
+        id = stepId,
+        pocket = spec.pocket or pocket.id,
         cluster = "area-" .. Slug(cluster.zone),
         kind = "area",
         title = title,
@@ -1026,7 +1114,7 @@ local function PocketStep(cluster, pocket)
         placeName = pocket.name,
         questIDs = ids,
         goalHeader = "Area",
-        goals = KeepDone(PreviousGoals("dyn-area-pocket-" .. pocket.id), GoalsNamed(pocket.rows, pocket.name)),
+        goals = goals,
         minutes = 12,
         confidence = pocket.x and "reported" or "log",
         source = pocket.source or "quest-log",
@@ -1038,6 +1126,105 @@ local function PocketStep(cluster, pocket)
         step.pin = "approx"
     end
     return step
+end
+
+-- The previous camp is finished when every quest it owned is ready or gone.
+local function VisitDone(pocket, ids, log)
+    if not ids or #ids == 0 or not log or not QS.Resume or not QS.Resume.Done then
+        return false
+    end
+    return QS.Resume.Done({
+        id = "dyn-area-pocket-" .. pocket.id,
+        pocket = pocket.id,
+        kind = "area",
+        questIDs = ids,
+    }, log) and true or false
+end
+
+-- Newest finished set for this camp. A later snapshot may already list the
+-- new quest; that snapshot is not finished, so the one before it still counts.
+local function FinishedVisitIds(pocket, log)
+    local baseId = "dyn-area-pocket-" .. pocket.id
+    local sets = {}
+    local function consider(step)
+        if step and step.id == baseId and type(step.questIDs) == "table" and #step.questIDs > 0 then
+            sets[#sets + 1] = step.questIDs
+        end
+    end
+    local hist = QS.char and QS.char.history
+    if type(hist) == "table" then
+        for i = 1, #hist do
+            consider(hist[i])
+        end
+    end
+    local route = QS.route
+    if route and route.steps then
+        for i = 1, #route.steps do
+            consider(route.steps[i])
+        end
+    end
+    for i = #sets, 1, -1 do
+        if VisitDone(pocket, sets[i], log) then
+            return sets[i]
+        end
+    end
+    return nil
+end
+
+-- A quest accepted after the camp was finished is a new visit.
+local function SplitVisit(pocket, log)
+    local ownedIds = FinishedVisitIds(pocket, log)
+    if not ownedIds then
+        return nil
+    end
+    local owned = {}
+    for i = 1, #ownedIds do
+        owned[ownedIds[i]] = true
+    end
+    local stay, fresh = {}, {}
+    for i = 1, #pocket.rows do
+        local row = pocket.rows[i]
+        if owned[row.id] then
+            stay[#stay + 1] = row
+        else
+            fresh[#fresh + 1] = row
+        end
+    end
+    if #fresh == 0 then
+        return nil
+    end
+    return stay, fresh
+end
+
+local function FreshStep(cluster, pocket, rows)
+    local ids = {}
+    for i = 1, #rows do
+        ids[#ids + 1] = rows[i].id
+    end
+    table.sort(ids)
+    local parts = {}
+    for i = 1, #ids do
+        parts[i] = tostring(ids[i])
+    end
+    local tail = table.concat(parts, "-")
+    local title = "Return to " .. pocket.name
+    local text = "These quests are in " .. pocket.name .. ", " .. (pocket.where or pocket.name) .. "."
+    if #rows == 1 then
+        title = rows[1].title
+        text = "This quest is in " .. pocket.name .. ", " .. (pocket.where or pocket.name) .. "."
+    end
+    if pocket.x then
+        text = text .. " The arrow points there."
+    else
+        text = text .. " That spot has no published pin."
+    end
+    return PocketStep(cluster, pocket, rows, {
+        id = "dyn-area-pocket-" .. pocket.id .. "-next-" .. tail,
+        pocket = pocket.id .. "-next-" .. tail,
+        title = title,
+        text = text,
+        fresh = true,
+    })
 end
 
 local function TravelStep(chosen, tail, lead)
@@ -1232,12 +1419,23 @@ function Area.Apply(built, char, log)
         end
         for i = 1, #pockets do
             local pocket = pockets[i]
+            local stay, fresh
             if not pocket.skipped then
+                stay, fresh = SplitVisit(pocket, log)
+            end
+            if fresh then
+                if stay and #stay > 0 then
+                    block[#block + 1] = PocketStep(chosen, pocket, stay)
+                end
+            elseif not pocket.skipped then
                 block[#block + 1] = PocketStep(chosen, pocket)
             end
             local hand = HandInStep(chosen, pocket)
             if hand then
                 block[#block + 1] = hand
+            end
+            if fresh then
+                block[#block + 1] = FreshStep(chosen, pocket, fresh)
             end
         end
     else

@@ -1,4 +1,9 @@
 -- Stratagem changelog
+-- 0.1.23 (2026-10-06)
+-- A quest accepted after a camp is finished is its own step. The
+-- finished camp stays checked and keeps its completed objectives.
+-- The follow-up of the quest just turned in is accepted when its
+-- name continues that quest.
 -- 0.1.22 (2026-10-06)
 -- Back from a camp turn-in opens the camp. An older single-quest
 -- turn-in for that camp stays an objective on the current step.

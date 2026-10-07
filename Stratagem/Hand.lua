@@ -1,10 +1,9 @@
 -- Turn in a finished quest while the NPC dialog is open, then accept the
--- next quest only when this route names it, or it is the single follow-up
--- of a turn-in this route was already on. A dungeon quest shared by a
--- player is accepted on its own. A reward with several choices is taken
--- when the route names it, one choice is a clear stat upgrade for the
--- spec, or, failing that, the choice that vendors for the most. Hold Shift
--- to leave the dialog alone.
+-- next quest only when this route names it, or it continues the quest just
+-- turned in. A dungeon quest shared by a player is accepted on its own.
+-- A reward with several choices is taken when the route names it, one
+-- choice is a clear stat upgrade for the spec, or, failing that, the choice
+-- that vendors for the most. Hold Shift to leave the dialog alone.
 
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
@@ -13,6 +12,7 @@ QS.Hand = Hand
 
 local DUNGEON_TAG = 81
 local followUntil = 0
+local followTitle = nil
 local lastSelect = 0
 local depth = 0
 local pendingAccept = false
@@ -58,6 +58,19 @@ function Hand.OnRoute(route, questID, title)
             if titled and step.title and string.lower(step.title) == name then
                 return true
             end
+            local goals = step.goals
+            if goals then
+                for g = 1, #goals do
+                    local goal = goals[g]
+                    local gname = goal and goal.name
+                    if type(gname) == "string" then
+                        local low = string.lower(gname)
+                        if low == name or low == "turn in " .. name then
+                            return true
+                        end
+                    end
+                end
+            end
         end
     end
     -- Gossip on some clients has the title and no id. The area step stores the log id.
@@ -85,6 +98,31 @@ function Hand.ChooseAccept(route, offers, follow)
     end
     if routeHits[1] then
         return routeHits[1]
+    end
+    -- Several offers: take the one that continues the quest just turned in.
+    if type(follow) == "string" and #followHits > 1 then
+        local words = {}
+        for word in string.gmatch(string.lower(follow), "%a%a%a%a%a+") do
+            words[#words + 1] = word
+        end
+        local matched = {}
+        for i = 1, #followHits do
+            local idx = followHits[i]
+            local title = string.lower(offers[idx].title or "")
+            local hit = false
+            for w = 1, #words do
+                if string.find(title, words[w], 1, true) then
+                    hit = true
+                end
+            end
+            if hit then
+                matched[#matched + 1] = idx
+            end
+        end
+        if #matched == 1 then
+            return matched[1]
+        end
+        return nil
     end
     if follow and #followHits == 1 then
         return followHits[1]
@@ -126,11 +164,19 @@ end
 local function ArmFollow(questID, title)
     if Hand.OnRoute(QS.route, questID, title) then
         followUntil = Now() + 3
+        followTitle = title
     end
 end
 
 local function FollowHot()
     return Now() < followUntil
+end
+
+local function FollowName()
+    if Now() < followUntil then
+        return followTitle or true
+    end
+    return nil
 end
 
 local function CanSelect()
@@ -408,7 +454,7 @@ local function GreetingOffers()
 end
 
 local function TakeAccept(offers)
-    local index = Hand.ChooseAccept(QS.route, offers, FollowHot())
+    local index = Hand.ChooseAccept(QS.route, offers, FollowName())
     if not index then
         return false
     end
