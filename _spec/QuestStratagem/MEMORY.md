@@ -336,6 +336,12 @@ When every objective on a camp is finished, the current step is the first turn-i
 
 Lua files for this pass were parsed as Lua 5.1. The camp advancing to its turn-in was executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.20
+
+A finished camp is not held on screen by an older manual step. The window moves to the turn-in. Back can still open that camp. Area and Already done include the zone and the path step, such as Stonetalon Mountains - Step 38. Last leg shows the recorded time and XP of the step that finished. Under a minute it shows seconds. Options has Auto pick reward. Turn it off to choose the quest item yourself. The recommendation stays on the goal row.
+
+Lua files for this pass were parsed as Lua 5.1. The released camp, the leg time, and the reward toggle were executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -390,3 +396,4 @@ Lua files for this pass were parsed as Lua 5.1. The camp advancing to its turn-i
 - 2026-10-06: A finished camp objective stays at its count. The hand-in is the next step.
 - 2026-10-06: A finished objective stays on the step and reads (Completed) in green. Back still lists it.
 - 2026-10-06: A camp moves to its turn-in when every objective is finished. It stays up while any objective is still open.
+- 2026-10-06: A finished camp is not pinned by an older manual step. Area and Already done name the zone and the path step. Last leg is the recorded step time. Auto pick reward can be turned off.

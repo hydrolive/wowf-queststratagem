@@ -1,4 +1,8 @@
 -- Stratagem changelog
+-- 0.1.20 (2026-10-06)
+-- A finished camp is not pinned on screen. Area and Already done name
+-- the zone and the path step. Last leg is the recorded step time.
+-- Options can leave the quest reward for you to pick.
 -- 0.1.19 (2026-10-06)
 -- When every objective on a camp is finished, the current step is the
 -- turn-in. The camp stays up while any objective is still open.

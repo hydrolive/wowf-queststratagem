@@ -503,6 +503,9 @@ function UI:PaintGoals(step, log)
         return
     end
     self.goalHeader:Show()
+    if QS.Resume and QS.Resume.PlaceLabel then
+        header = QS.Resume.PlaceLabel(header, step)
+    end
     self.goalHeader:SetText(header)
     local limit = #self.goalRows
     local shown = #rows
@@ -605,7 +608,12 @@ function UI:Refresh()
         self.body:SetText("Every authored step is done or skipped.")
         self.dist:SetText("—")
     end
-    self.status:SetText(QS.Resume.Status(step, log or { inLog = {}, completed = {} }, measure))
+    if route and QS.Resume and QS.Resume.PathRows then
+        local _, focus = QS.Resume.PathRows(route)
+        route.pathStep = focus
+    end
+    local statusLog = log or { inLog = {}, completed = {} }
+    self.status:SetText(QS.Resume.Status(step, statusLog, measure))
     self.lastLeg:SetText(QS.Clock.FormatLeg(QS.char and QS.char.lastLeg))
     self.goal:SetText(QS.Clock.Header())
     self.route:SetText(QS.Resume.RouteLine(QS.char, step, log))
@@ -1065,6 +1073,9 @@ function UI:Init()
 
     self.status = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     self.status:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -40)
+    self.status:SetWidth(428)
+    self.status:SetJustifyH("LEFT")
+    self.status:SetWordWrap(false)
     self.status:SetTextColor(RGB(QS.COLOR.body))
     self.status:SetText("Ready")
 
@@ -1175,6 +1186,9 @@ function UI:Init()
 
     self.goalHeader = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     self.goalHeader:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -232)
+    self.goalHeader:SetWidth(428)
+    self.goalHeader:SetJustifyH("LEFT")
+    self.goalHeader:SetWordWrap(false)
     self.goalHeader:SetTextColor(RGB(QS.COLOR.gold))
 
     self.goalRows = {}
@@ -1299,6 +1313,7 @@ function UI:BuildConfig()
         { "professionSteps", "Profession steps" },
         { "includeStubs", "Include stub data" },
         { "autoHand", "Auto turn-in and accept" },
+        { "autoReward", "Auto pick reward" },
     }
     for i = 1, #toggles do
         local key, label = toggles[i][1], toggles[i][2]
@@ -1313,11 +1328,16 @@ function UI:BuildConfig()
         text:SetText(label)
         text:SetTextColor(RGB(QS.COLOR.body))
         row.key = key
-        if key == "autoHand" then
+        if key == "autoHand" or key == "autoReward" then
             row:SetScript("OnEnter", function()
                 GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
-                GameTooltip:SetText("Auto turn-in and accept", 1, 0.82, 0)
-                GameTooltip:AddLine("Finished quests turn in while you talk to the NPC. The next quest is accepted when Stratagem already has it, or it is the only follow-up. A shared dungeon quest is accepted. Hold Shift to leave the dialog alone.", 0.9, 0.88, 0.83, true)
+                if key == "autoReward" then
+                    GameTooltip:SetText("Auto pick reward", 1, 0.82, 0)
+                    GameTooltip:AddLine("Chooses the quest reward from BiS or the highest vendor price. Turn this off to pick the item yourself.", 0.9, 0.88, 0.83, true)
+                else
+                    GameTooltip:SetText("Auto turn-in and accept", 1, 0.82, 0)
+                    GameTooltip:AddLine("Finished quests turn in while you talk to the NPC. The next quest is accepted when Stratagem already has it, or it is the only follow-up. A shared dungeon quest is accepted. Hold Shift to leave the dialog alone.", 0.9, 0.88, 0.83, true)
+                end
                 GameTooltip:Show()
             end)
             row:SetScript("OnLeave", function()

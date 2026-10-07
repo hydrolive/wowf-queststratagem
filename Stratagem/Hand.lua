@@ -115,6 +115,10 @@ local function Enabled()
     return QS.char and QS.char.autoHand ~= false and not (IsShiftKeyDown and IsShiftKeyDown())
 end
 
+function Hand.AutoReward()
+    return QS.char and QS.char.autoReward ~= false
+end
+
 local function Now()
     return GetTime and GetTime() or 0
 end
@@ -505,6 +509,10 @@ end
 local function OnComplete()
     local id, title = DialogID(), DialogTitle()
     ArmFollow(id, title)
+    if not Hand.AutoReward() then
+        Note("Reward left for you to choose")
+        return
+    end
     local pick = RewardPick()
     if not pick then
         Note("Reward choice left open")

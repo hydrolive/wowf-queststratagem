@@ -299,7 +299,8 @@ function Resume.Choose(steps, log, char)
             char.manualFrontierId = nil
         else
             local held = steps[mi]
-            if held.levelDefer or (QS.Level and QS.Level.IsGrey(held)) then
+            -- A finished step does not stay pinned. Back can still review it.
+            if held.levelDefer or Resume.Done(held, log) or (QS.Level and QS.Level.IsGrey(held)) then
                 char.manualStepId = nil
                 char.manualFrontierId = nil
                 return frontier
@@ -1460,6 +1461,21 @@ function Resume.Where()
     ))
 end
 
+function Resume.PlaceLabel(label, step)
+    if label ~= "Area" and label ~= "Already done" then
+        return label
+    end
+    local zone = step and step.zone
+    if type(zone) == "string" and zone ~= "" then
+        label = label .. " · " .. zone
+    end
+    local n = QS.route and QS.route.pathStep
+    if type(n) == "number" and n > 0 then
+        label = label .. " - Step " .. n
+    end
+    return label
+end
+
 function Resume.Status(step, log, measure)
     if not step then
         return "Ready"
@@ -1472,7 +1488,7 @@ function Resume.Status(step, log, measure)
     end
     local char = QS.char
     if char and char.manualStepId == step.id and Resume.Done(step, log) then
-        return "Already done"
+        return Resume.PlaceLabel("Already done", step)
     end
     if step.kind == "boss" then
         return "Boss"
@@ -1481,7 +1497,10 @@ function Resume.Status(step, log, measure)
         return "Kills"
     end
     if step.kind == "area" then
-        return step.areaTurnin and "Turn in" or "Area"
+        if step.areaTurnin then
+            return "Turn in"
+        end
+        return Resume.PlaceLabel("Area", step)
     end
     if step.kind == "talent" then
         return "Talent"

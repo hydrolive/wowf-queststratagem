@@ -51,10 +51,16 @@ function Clock:CloseLeg()
         return
     end
     self:SampleXP()
-    char.lastLeg = {
-        seconds = math.max(0, time() - leg.epoch),
-        xp = leg.xp or 0,
-    }
+    local seconds = math.max(0, time() - leg.epoch)
+    local xp = leg.xp or 0
+    local prev = char.lastLeg
+    -- A rebuild that flips the step for a moment must not erase the recorded leg.
+    if not (seconds < 15 and xp <= 0 and prev and (prev.seconds or 0) >= 15) then
+        char.lastLeg = {
+            seconds = seconds,
+            xp = xp,
+        }
+    end
     char.legStart = nil
 end
 
@@ -115,11 +121,23 @@ function Clock.FormatLeg(leg)
     if not leg or not leg.seconds then
         return "Last leg: —"
     end
-    local minutes = math.floor(leg.seconds / 60 + 0.5)
-    if minutes < 1 then
-        minutes = 1
+    local seconds = math.floor(leg.seconds + 0.5)
+    if seconds < 0 then
+        seconds = 0
     end
-    return string.format("Last leg: %d min · +%s XP", minutes, Clock.Comma(leg.xp or 0))
+    local text
+    if seconds < 60 then
+        text = seconds .. "s"
+    else
+        local hours = math.floor(seconds / 3600)
+        local minutes = math.floor((seconds % 3600) / 60)
+        if hours > 0 then
+            text = string.format("%dh %dm", hours, minutes)
+        else
+            text = minutes .. " min"
+        end
+    end
+    return string.format("Last leg: %s · +%s XP", text, Clock.Comma(leg.xp or 0))
 end
 
 function Clock.Comma(n)

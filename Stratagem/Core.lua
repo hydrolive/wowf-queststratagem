@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.19"
+QS.VERSION = "0.1.20"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -56,6 +56,7 @@ local CHAR_DEFAULTS = {
     demo = false,
     shown = true,
     autoHand = true,
+    autoReward = true,
     minimapAngle = 0.8,
     factionOverride = nil,
     raceOverride = nil,
@@ -459,6 +460,9 @@ function QS:OnEvent(event, arg1, arg2)
         return
     end
     if event == "QUEST_ACCEPTED" or event == "QUEST_FINISHED" or event == "QUEST_LOG_UPDATE" or event == "PLAYER_LEVEL_UP" or event == "QUEST_WATCH_UPDATE" or event == "UNIT_QUEST_LOG_CHANGED" then
+        if event == "PLAYER_LEVEL_UP" and QS.Clock then
+            QS.Clock:SampleXP()
+        end
         if QS.scanningLog then
             return
         end
