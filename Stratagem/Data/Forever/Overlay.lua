@@ -1,4 +1,7 @@
 -- Stratagem changelog
+-- 0.1.18 (2026-10-06)
+-- A finished objective stays on its step. The count reads (Completed)
+-- in green. Back still lists the objectives that step finished.
 -- 0.1.17 (2026-10-06)
 -- A finished camp objective stays on the camp at its count, such as
 -- Gaea seed planted 10/10. The hand-in is the next step. It is not

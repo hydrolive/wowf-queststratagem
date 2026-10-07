@@ -412,26 +412,39 @@ local function ObjectiveLabel(text)
     return text
 end
 
+local function GoalCount(obj, complete)
+    local have = obj.have or 0
+    local need = obj.need or 0
+    local done = obj.finished or complete or (need > 0 and have >= need)
+    if done and need > 0 and have < need then
+        have = need
+    end
+    local goal = {
+        have = have,
+        need = need,
+    }
+    if done then
+        goal.count = "(Completed)"
+    end
+    return goal
+end
+
 local function GoalsFor(cluster)
     local goals = {}
     for i = 1, #cluster.rows do
         local row = cluster.rows[i]
-        if row.complete then
-            goals[#goals + 1] = { name = "Turn in " .. row.title, have = 0, need = 1 }
-        else
-            local added = false
-            for j = 1, #row.objectives do
-                local obj = row.objectives[j]
-                if not obj.finished then
-                    goals[#goals + 1] = {
-                        name = ObjectiveLabel(obj.text) or row.title,
-                        have = obj.have or 0,
-                        need = obj.need or 0,
-                    }
-                    added = true
-                end
-            end
-            if not added then
+        local added = false
+        for j = 1, #row.objectives do
+            local obj = row.objectives[j]
+            local goal = GoalCount(obj, row.complete)
+            goal.name = ObjectiveLabel(obj.text) or row.title
+            goals[#goals + 1] = goal
+            added = true
+        end
+        if not added then
+            if row.complete then
+                goals[#goals + 1] = { name = row.title, have = 1, need = 1, count = "(Completed)" }
+            else
                 goals[#goals + 1] = { name = row.title, have = 0, need = 1 }
             end
         end
@@ -628,25 +641,6 @@ local function WithPlace(name, placeName)
     return (name or placeName) .. " · " .. placeName
 end
 
-local function GoalCount(obj, complete)
-    local have = obj.have or 0
-    local need = obj.need or 0
-    local done = obj.finished or complete
-    if done and need > 0 and have < need then
-        have = need
-    end
-    local goal = {
-        have = have,
-        need = need,
-    }
-    if done and need <= 0 then
-        goal.have = 1
-        goal.need = 1
-        goal.count = "complete"
-    end
-    return goal
-end
-
 local function GoalsNamed(rows, placeName)
     local goals = {}
     for i = 1, #rows do
@@ -654,13 +648,10 @@ local function GoalsNamed(rows, placeName)
         local added = false
         for j = 1, #row.objectives do
             local obj = row.objectives[j]
-            -- A finished quest keeps its objective. The hand-in is the next step.
-            if row.complete or not obj.finished then
-                local goal = GoalCount(obj, row.complete)
-                goal.name = WithPlace(ObjectiveLabel(obj.text) or row.title, placeName)
-                goals[#goals + 1] = goal
-                added = true
-            end
+            local goal = GoalCount(obj, row.complete)
+            goal.name = WithPlace(ObjectiveLabel(obj.text) or row.title, placeName)
+            goals[#goals + 1] = goal
+            added = true
         end
         if not added then
             if row.complete then
@@ -668,7 +659,7 @@ local function GoalsNamed(rows, placeName)
                     name = WithPlace(row.title, placeName),
                     have = 1,
                     need = 1,
-                    count = "complete",
+                    count = "(Completed)",
                 }
             else
                 goals[#goals + 1] = { name = WithPlace(row.title, placeName), have = 0, need = 1 }
@@ -676,6 +667,57 @@ local function GoalsNamed(rows, placeName)
         end
     end
     return goals
+end
+
+local function GoalKey(name)
+    return string.lower(name or "")
+end
+
+local function KeepDone(previous, goals)
+    if not previous then
+        return goals
+    end
+    local seen = {}
+    for i = 1, #goals do
+        seen[GoalKey(goals[i].name)] = true
+    end
+    for i = 1, #previous do
+        local old = previous[i]
+        local key = GoalKey(old.name)
+        local full = old.need and old.need > 0 and (old.have or 0) >= old.need
+        local done = old.count == "(Completed)" or old.count == "complete" or full
+        if done and key ~= "" and not seen[key] then
+            goals[#goals + 1] = {
+                name = old.name,
+                have = old.have,
+                need = old.need,
+                count = "(Completed)",
+            }
+            seen[key] = true
+        end
+    end
+    return goals
+end
+
+local function PreviousGoals(id)
+    local route = QS.route
+    if route and route.steps then
+        for i = 1, #route.steps do
+            local step = route.steps[i]
+            if step.id == id and step.goals then
+                return step.goals
+            end
+        end
+    end
+    local hist = QS.char and QS.char.history
+    if type(hist) == "table" then
+        for i = #hist, 1, -1 do
+            if hist[i].id == id and hist[i].goals then
+                return hist[i].goals
+            end
+        end
+    end
+    return nil
 end
 
 function Area.RefreshStep(step, log)
@@ -706,7 +748,7 @@ function Area.RefreshStep(step, log)
     end
     table.sort(ids)
     step.questIDs = ids
-    step.goals = GoalsNamed(rows, step.placeName)
+    step.goals = KeepDone(step.goals, GoalsNamed(rows, step.placeName))
 end
 
 local function ActivePockets(cluster, char)
@@ -844,7 +886,7 @@ local function PocketStep(cluster, pocket)
         placeName = pocket.name,
         questIDs = ids,
         goalHeader = "Area",
-        goals = GoalsNamed(pocket.rows, pocket.name),
+        goals = KeepDone(PreviousGoals("dyn-area-pocket-" .. pocket.id), GoalsNamed(pocket.rows, pocket.name)),
         minutes = 12,
         confidence = pocket.x and "reported" or "log",
         source = pocket.source or "quest-log",

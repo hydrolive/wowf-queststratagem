@@ -315,6 +315,12 @@ function UI:LayoutSegments(pos, count)
 end
 
 local function CountText(goal)
+    if goal.count == "(Completed)" or goal.count == "complete" then
+        return "(Completed)"
+    end
+    if goal.need and goal.need > 0 and (goal.have or 0) >= goal.need then
+        return "(Completed)"
+    end
     if goal.count and goal.count ~= "" then
         return goal.count
     end
@@ -322,6 +328,11 @@ local function CountText(goal)
         return (goal.have or 0) .. "/" .. goal.need
     end
     return ""
+end
+
+local function GoalRow(goal)
+    local count = CountText(goal)
+    return { name = goal.name, count = count, done = count == "(Completed)" }
 end
 
 local function GoalText(step, log)
@@ -345,19 +356,20 @@ local function GoalText(step, log)
         local info = step.questID and log and log.inLog[step.questID]
         if step.goals then
             for i = 1, #step.goals do
-                local g = step.goals[i]
-                rows[#rows + 1] = { name = g.name, count = CountText(g) }
+                rows[#rows + 1] = GoalRow(step.goals[i])
             end
         elseif info and info.objectives and #info.objectives > 0 then
             for i = 1, #info.objectives do
                 local o = info.objectives[i]
                 local count = ""
-                if o.need and o.need > 0 then
+                local done = false
+                if o.finished or (o.need and o.need > 0 and (o.have or 0) >= o.need) then
+                    count = "(Completed)"
+                    done = true
+                elseif o.need and o.need > 0 then
                     count = (o.have or 0) .. "/" .. o.need
-                elseif o.finished then
-                    count = "done"
                 end
-                rows[#rows + 1] = { name = o.text or ("Objective " .. i), count = count }
+                rows[#rows + 1] = { name = o.text or ("Objective " .. i), count = count, done = done }
             end
         else
             rows[#rows + 1] = { name = step.text or "Objective", count = "" }
@@ -366,7 +378,7 @@ local function GoalText(step, log)
         header = step.goalHeader or step.questName or step.title or ""
         if step.goals and #step.goals > 0 then
             for i = 1, #step.goals do
-                rows[#rows + 1] = { name = step.goals[i].name, count = CountText(step.goals[i]) }
+                rows[#rows + 1] = GoalRow(step.goals[i])
             end
             return header, rows
         end
@@ -441,7 +453,7 @@ function UI:PaintGoals(step, log)
         if step.extraGoals then
             for i = 1, #step.extraGoals do
                 local g = step.extraGoals[i]
-                rows[#rows + 1] = { name = g.name, count = CountText(g) }
+                rows[#rows + 1] = GoalRow(g)
             end
         end
     end
@@ -504,9 +516,14 @@ function UI:PaintGoals(step, log)
         if src and not overflow then
             row.name:SetText(src.name)
             row.count:SetText(src.count or "")
-            local color = src.bis and QS.COLOR.bis or QS.COLOR.body
-            row.name:SetTextColor(RGB(color))
-            row.count:SetTextColor(RGB(QS.COLOR.muted))
+            if src.done then
+                row.name:SetTextColor(RGB(QS.COLOR.done))
+                row.count:SetTextColor(RGB(QS.COLOR.done))
+            else
+                local color = src.bis and QS.COLOR.bis or QS.COLOR.body
+                row.name:SetTextColor(RGB(color))
+                row.count:SetTextColor(RGB(QS.COLOR.muted))
+            end
             local tex = RowTexture(src)
             local y = -250 - (i - 1) * 16
             row.name:ClearAllPoints()

@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.17"
+QS.VERSION = "0.1.18"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -13,6 +13,7 @@ QS.COLOR = {
     muted = { 0.659, 0.627, 0.565 },
     bis = { 0.941, 0.780, 0.369 },
     danger = { 0.878, 0.314, 0.314 },
+    done = { 0.45, 0.82, 0.42 },
     fill = { 0.941, 0.816, 0.376 },
     empty = { 0.227, 0.204, 0.173 },
     bg = { 0.10, 0.09, 0.08, 0.94 },
