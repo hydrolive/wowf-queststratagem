@@ -330,6 +330,12 @@ A finished objective stays on its step. The line reads (Completed) in green inst
 
 Lua files for this pass were parsed as Lua 5.1. The kept objectives were executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.19
+
+When every objective on a camp is finished, the current step is the first turn-in. The camp stays current while any objective is still open. A finished objective still reads (Completed), and Back still lists it.
+
+Lua files for this pass were parsed as Lua 5.1. The camp advancing to its turn-in was executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -383,3 +389,4 @@ Lua files for this pass were parsed as Lua 5.1. The kept objectives were execute
 - 2026-10-06: The Charred Vale keeps the quests you are doing there, including Incendrites and planting Gaea seeds. Kill counts follow the quest log. Gathering Gaea seeds stays at Mirkfallon Lake. A low-level quest still does not start a trip from another zone.
 - 2026-10-06: A finished camp objective stays at its count. The hand-in is the next step.
 - 2026-10-06: A finished objective stays on the step and reads (Completed) in green. Back still lists it.
+- 2026-10-06: A camp moves to its turn-in when every objective is finished. It stays up while any objective is still open.

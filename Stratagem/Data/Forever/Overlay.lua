@@ -1,4 +1,7 @@
 -- Stratagem changelog
+-- 0.1.19 (2026-10-06)
+-- When every objective on a camp is finished, the current step is the
+-- turn-in. The camp stays up while any objective is still open.
 -- 0.1.18 (2026-10-06)
 -- A finished objective stays on its step. The count reads (Completed)
 -- in green. Back still lists the objectives that step finished.

@@ -138,8 +138,19 @@ function Resume.Done(step, log)
     local kind = step.kind
     if kind == "area" then
         local ids = step.questIDs
-        if not ids then
+        if not ids or #ids == 0 then
             return false
+        end
+        -- A camp stays up while any objective is open. When every quest
+        -- on it is ready to hand in, the turn-in steps are next.
+        if step.pocket then
+            for i = 1, #ids do
+                local info = log.inLog[ids[i]]
+                if info and not (QS.Area and QS.Area.Ready and QS.Area.Ready(info)) then
+                    return false
+                end
+            end
+            return true
         end
         for i = 1, #ids do
             if log.inLog[ids[i]] then

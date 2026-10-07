@@ -125,12 +125,37 @@ local function WindText(dest)
         .. dest .. "."
 end
 
+local function ObjectivesReady(objectives)
+    if not objectives or #objectives == 0 then
+        return false
+    end
+    for i = 1, #objectives do
+        local obj = objectives[i]
+        local need = obj.need or 0
+        local have = obj.have or 0
+        if not (obj.finished or (need > 0 and have >= need)) then
+            return false
+        end
+    end
+    return true
+end
+
+function Area.Ready(info)
+    if not info then
+        return false
+    end
+    if info.complete then
+        return true
+    end
+    return ObjectivesReady(info.objectives)
+end
+
 local function MakeRow(id, info)
     local place = PlaceFor(info.title)
     return {
         id = id,
         title = info.title or ("Quest " .. id),
-        complete = info.complete and true or false,
+        complete = Area.Ready(info),
         level = info.level,
         objectives = info.objectives or {},
         zone = (place and place.zone) or info.zone or "Quests",
