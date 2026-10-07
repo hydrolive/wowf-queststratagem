@@ -1,5 +1,5 @@
 -- Race/class coverage. Every Forever combo has a key.
--- A stub race falls back to the nearest authored spine.
+-- A race with no spine still falls back to Orc or Human.
 
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem

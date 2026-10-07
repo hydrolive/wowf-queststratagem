@@ -391,6 +391,12 @@ The path lists a dungeon only while the player's level is inside the Group Finde
 
 Lua files for this pass were parsed as Lua 5.1. The level-28 dungeon list was executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.29
+
+Every race and class in the coverage matrix has a level-1 path. Tauren opens in Camp Narache on The Hunt Begins (747), and a Hunter then takes the Etched Note (3092). Undead opens in Deathknell on Rude Awakening (363). Dwarf and Gnome share Coldridge, opening on Dwarven Outfitters (179). Night Elf opens in Shadowglen on The Balance of Nature (456). Each of those chains stops at the first town: Bloodhoof, Brill, Kharanos, or Dolanaar. Orc and Troll stay on Durotar. Human stays on Elwynn. HighOrder and Windshaper stay on the Zephras notes, which have no quest id. A class with no Classic starter quest gets a note instead of an invented id. The warning that a race has no stratagem does not appear for these combinations.
+
+Lua files for this pass were parsed as Lua 5.1. Router.Build was executed outside the client for every race and class at level 1. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -401,11 +407,11 @@ Lua files for this pass were parsed as Lua 5.1. The level-28 dungeon list was ex
 - Dungeon entrance coordinates are reported. Confirm them before calling a pin exact.
 - English-only item class and death-message matching. Localization is open.
 - Classic `GetContainerItemInfo` may not return bound. Unbound-unknown greens then show on the auction step, with the soulbound warning.
-- Author the 1–60 quest spine. Barrens, Silverpine, Thousand Needles, Hillsbrad, and the rest are not in this data version. Until they are, a level with no in-band quest shows one dungeon plus kill steps, and the step says the quest ids are missing. Zone hub coordinates on those kill steps are approximate.
+- Author the 1–60 quest spine past the first town. Every race has a level-1 starter through that town (Elwynn, Coldridge to Kharanos, Shadowglen to Dolanaar, Durotar, Deathknell to Brill, Camp Narache to Bloodhoof, or a Zephras note). Barrens, Silverpine, Thousand Needles, Hillsbrad, and the rest are not in this data version. Until they are, a level with no in-band quest shows one dungeon plus kill steps, and the step says the quest ids are missing. Zone hub coordinates on those kill steps are approximate.
 - Gather quotas are a flat 20, not tuned per herb.
 - Talent orders are reported, not simulated, and not Forever-adjusted.
 - Warlock route can stall before Sen'jin because quest 805 requires 794, and 792 is omitted for warlocks. Known, not fixed.
-- In-game pass: load at level 27 and confirm Valley of Trials is gone, the header is time to 28, and the bar sits near the current XP. Also load a level 1–6 character and confirm the starter chain is still there. Set hearth in Goldshire, spend a talent, train, craft, fill bags, and walk a boss step. This session did not log in.
+- In-game pass: load at level 27 and confirm Valley of Trials is gone, the header is time to 28, and the bar sits near the current XP. Also load a level 1 Tauren Hunter and confirm Camp Narache, The Hunt Begins, with no missing-route warning. Set hearth in Goldshire, spend a talent, train, craft, fill bags, and walk a boss step. This session did not log in.
 - The green-range fallback is approximate when `GetQuestGreenRange` is missing. The level ETA is a guess from the planning numbers above, not measured kill times.
 - Forever dungeon quest ids, when a public page names them. Until then those dungeons stay stubs and do not insert. Classic dungeon quest id lists are still empty; the window is the boss order.
 
@@ -454,3 +460,4 @@ Lua files for this pass were parsed as Lua 5.1. The level-28 dungeon list was ex
 - 2026-10-06: An objective keeps its count and also reads (Completed) in green when it is done. A checkbox beside the count completes it. Sell junk can be skipped that way. The step advances when every objective on it is complete.
 - 2026-10-06: Ordanus points at Raynewood Retreat in Ashenvale, about 61, 52. From Stonetalon the step is Go to Ashenvale. The hand-in stays Sun Rock Retreat. While an earlier step is on screen, the live step stays the next path row.
 - 2026-10-06: A dungeon is on the path only inside its Group Finder range. Gnomeregan and Razorfen Kraul start at 29. At 28 the dungeon is Blackfathom Deeps.
+- 2026-10-06: Every race has a level-1 path. Tauren starts on The Hunt Begins in Camp Narache. Undead, Dwarf, Gnome, and Night Elf start in their own valleys. The chain ends at the first town. Classes with no Classic starter quest get a note. No Forever quest id is invented.

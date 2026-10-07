@@ -4,7 +4,7 @@
 
 `Router.Build(char)`:
 
-1. Load spine for faction + race + class.
+1. Load spine for faction + race + class. A missing or stub spine falls back to Human or Orc and warns. Tauren, Undead, Dwarf, Gnome, and Night Elf have their own level-1 spines, so those combinations do not warn.
 2. Apply Forever overlays with `confidence ~= stub` unless config `includeStubs` (default off).
 3. Drop steps whose `classes` / `races` miss.
 4. Drop steps whose `exclusive` quest is turned in.

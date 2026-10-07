@@ -121,6 +121,8 @@ Classes per race follow Forever (not Classic-only):
 
 Starting zone by race: Elwynn, Dun Morogh, Dun Morogh (Gnome), Teldrassil, Zephras Isle, Durotar, Tirisfal, Mulgore, Durotar (Troll), Zephras Isle.
 
+Level 1 through the first town is authored for every race above. Human is Elwynn. Dwarf and Gnome share Coldridge through the Kharanos hearth. Night Elf is Shadowglen through Dolanaar. Orc and Troll share Durotar. Undead is Deathknell through Brill. Tauren is Camp Narache through the Bloodhoof hearth, and a Tauren Hunter opens on quest 747. HighOrder and Windshaper stay Zephras notes with no quest id. A class with no Classic starter quest (Human Hunter, Undead Paladin, Dwarf Shaman, Gnome Priest, and the same kind of note already on the Orc and Troll spine) gets that note, not an invented id. A race that still has no spine falls back to Human or Orc and says so. The road after the first town is not authored.
+
 Zone bands to cover for the 1–60 goal (Classic spine):
 
 - Alliance 1–12 starter → 10–20 Westfall / Loch Modan / Darkshore → 15–25 Redridge / Darkshore coast → 20–30 Duskwood / Wetlands / Ashenvale / Stonetalon → 30–40 Stranglethorn / Desolace / Arathi / Thousand Needles → 40–50 Tanaris / Feralas / Hinterlands / Searing Gorge → 50–60 Ungoro / Felwood / Winterspring / WPL / EPL / Burning Steppes / Silithus.

@@ -1,4 +1,8 @@
 -- Stratagem changelog
+-- 0.1.29 (2026-10-06)
+-- Every race has a level 1 path. Tauren starts in Mulgore,
+-- Undead in Deathknell, Dwarf and Gnome in Coldridge, Night Elf
+-- in Shadowglen. The first town is the end of that chain.
 -- 0.1.28 (2026-10-06)
 -- Gnomeregan stays off the path until level 29, when the
 -- dungeon finder lists it. At 28 the dungeon is Blackfathom Deeps.

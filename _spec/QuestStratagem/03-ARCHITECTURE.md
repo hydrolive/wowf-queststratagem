@@ -4,7 +4,7 @@ Classic-lineage addon. Lua 5.1. No vendored libraries. If HereBeDragons-2.0 is a
 
 The planning TOC below the shipped list used Interface 11507 and a single Alliance file. That placeholder is retired. The running addon uses Interface 16001, copied from a working Forever addon.
 
-## Shipped TOC (0.1.28)
+## Shipped TOC (0.1.29)
 
 The addon folder is `Stratagem/`. `## Title` is Stratagem. `## IconTexture` is `Interface\AddOns\Stratagem\icon.tga`. Saved variable names are still `QuestStratagemDB` and `QuestStratagemCharDB`.
 
@@ -13,7 +13,7 @@ The addon folder is `Stratagem/`. `## Title` is Stratagem. `## IconTexture` is `
 ## Title: Stratagem
 ## Notes: Offline 1-60 stratagem for WoW Forever. Arrow, chains, BiS.
 ## Author: Stratagem
-## Version: 0.1.28
+## Version: 0.1.29
 ## IconTexture: Interface\AddOns\Stratagem\icon.tga
 ## SavedVariables: QuestStratagemDB
 ## SavedVariablesPerCharacter: QuestStratagemCharDB
@@ -29,8 +29,12 @@ Data\Index.lua
 Data\Services.lua
 Data\Demo.lua
 Data\Classic\Alliance\Human.lua
+Data\Classic\Alliance\DunMorogh.lua
+Data\Classic\Alliance\Teldrassil.lua
 Data\Classic\Alliance\Stubs.lua
 Data\Classic\Horde\Durotar.lua
+Data\Classic\Horde\Mulgore.lua
+Data\Classic\Horde\Tirisfal.lua
 Data\Classic\Horde\Stubs.lua
 Data\Forever\Skyborne.lua
 Data\Forever\Overlay.lua
