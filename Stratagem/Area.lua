@@ -826,6 +826,158 @@ local function ApplySellJunk(goal)
     end
 end
 
+-- Rebuild replaces goal tables, so a manual check lives on the character.
+-- The key is the step id plus the goal, so Sell junk on one camp does not
+-- check Sell junk on another.
+function Area.GoalKey(step, goal)
+    if not step or not step.id or not goal then
+        return nil
+    end
+    local name = string.lower(goal.name or "")
+    if name == "" then
+        return nil
+    end
+    local qid = ""
+    if goal.questID then
+        qid = tostring(goal.questID)
+    end
+    return step.id .. "|" .. qid .. "|" .. name
+end
+
+function Area.GoalChecked(step, goal)
+    local checks = QS.char and QS.char.goalChecks
+    if type(checks) ~= "table" then
+        return false
+    end
+    local key = Area.GoalKey(step, goal)
+    return key and checks[key] and true or false
+end
+
+local function GoalWorldDone(goal)
+    if goal.count == "(Completed)" or goal.count == "complete" then
+        return true
+    end
+    local need = goal.need or 0
+    if need > 0 and (goal.have or 0) >= need then
+        return true
+    end
+    return false
+end
+
+function Area.CountText(goal)
+    if not goal then
+        return ""
+    end
+    local need = goal.need or 0
+    local have = goal.have or 0
+    local done = goal.manual or goal.natural or GoalWorldDone(goal)
+    if done and need > 0 then
+        if have < need then
+            have = need
+        end
+        return have .. "/" .. need .. " (Completed)"
+    end
+    if done then
+        return "(Completed)"
+    end
+    if goal.count and goal.count ~= "" and goal.count ~= "(Completed)" and goal.count ~= "complete" then
+        return goal.count
+    end
+    if need > 0 then
+        return have .. "/" .. need
+    end
+    return ""
+end
+
+function Area.StampGoal(step, goal)
+    if not goal then
+        return false
+    end
+    if not goal.based then
+        goal.based = true
+        goal.baseHave = goal.have or 0
+        goal.baseNeed = goal.need or 0
+        goal.baseCount = goal.count
+    end
+    goal.have = goal.baseHave
+    goal.need = goal.baseNeed
+    goal.count = goal.baseCount
+    local world = GoalWorldDone(goal)
+    if world then
+        local checks = QS.char and QS.char.goalChecks
+        local key = Area.GoalKey(step, goal)
+        if key and type(checks) == "table" then
+            checks[key] = nil
+        end
+        local need = goal.need or 0
+        if need > 0 and (goal.have or 0) < need then
+            goal.have = need
+        end
+        goal.count = "(Completed)"
+        goal.manual = false
+        goal.natural = true
+        return true
+    end
+    if Area.GoalChecked(step, goal) then
+        local need = goal.need or 0
+        if need <= 0 then
+            need = 1
+            goal.need = need
+        end
+        goal.have = need
+        goal.count = "(Completed)"
+        goal.manual = true
+        goal.natural = false
+        return true
+    end
+    goal.manual = false
+    goal.natural = false
+    return false
+end
+
+local function StampList(step, goals)
+    if not goals then
+        return
+    end
+    for i = 1, #goals do
+        Area.StampGoal(step, goals[i])
+    end
+end
+
+function Area.ApplyGoalChecks(steps)
+    if not steps then
+        return
+    end
+    for i = 1, #steps do
+        local step = steps[i]
+        if step then
+            StampList(step, step.goals)
+            StampList(step, step.extraGoals)
+        end
+    end
+end
+
+function Area.GoalsComplete(step)
+    local goals = step and step.goals
+    if not goals or #goals == 0 then
+        return false
+    end
+    local tracked = 0
+    for i = 1, #goals do
+        local goal = goals[i]
+        local done = Area.StampGoal(step, goal)
+        local need = goal.need or 0
+        local marked = goal.count == "(Completed)" or goal.count == "complete"
+        if need > 0 or marked then
+            tracked = tracked + 1
+            if not done then
+                return false
+            end
+        end
+    end
+    return tracked > 0
+end
+
 function Area.RefreshStep(step, log)
     if not step or not log then
         return

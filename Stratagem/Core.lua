@@ -1,7 +1,7 @@
 QuestStratagem = QuestStratagem or {}
 local QS = QuestStratagem
 
-QS.VERSION = "0.1.23"
+QS.VERSION = "0.1.24"
 QS.DATA_VERSION = "classic-1.12 + forever-2026-10-05"
 QS.loggedIn = false
 QS.route = nil
@@ -57,6 +57,7 @@ local CHAR_DEFAULTS = {
     shown = true,
     autoHand = true,
     autoReward = true,
+    goalChecks = {},
     minimapAngle = 0.8,
     factionOverride = nil,
     raceOverride = nil,
@@ -144,6 +145,9 @@ function QS:InitDB()
     if type(QuestStratagemCharDB.skipPockets) ~= "table" then
         QuestStratagemCharDB.skipPockets = {}
     end
+    if type(QuestStratagemCharDB.goalChecks) ~= "table" then
+        QuestStratagemCharDB.goalChecks = {}
+    end
     -- 0.1.5 could skip an area with no way back. Those skips are not in stepBack.
     if not hadBack then
         for id in pairs(QuestStratagemCharDB.skips) do
@@ -182,6 +186,9 @@ function QS:Rebuild()
     QS.identity = id
     local built = QS.Router.Build(id, QS.char)
     local log = QS.Api.Snapshot()
+    if QS.Area and QS.Area.ApplyGoalChecks then
+        QS.Area.ApplyGoalChecks(built.steps)
+    end
     QS.Resume.PullForward(built.steps, log, QS.char.skips)
     if QS.Level and QS.Level.Apply then
         QS.Level.Apply(built, QS.char, log)
@@ -195,8 +202,14 @@ function QS:Rebuild()
     if QS.Live and QS.Live.SpliceSpellTrain then
         QS.Live.SpliceSpellTrain(built, id, QS.char, log)
     end
+    if QS.Area and QS.Area.ApplyGoalChecks then
+        QS.Area.ApplyGoalChecks(built.steps)
+    end
     QS.Resume.SeedHistory(QS.char, log)
     local prevStep = QS.route and QS.route.index and QS.route.steps[QS.route.index]
+    if prevStep and QS.Area and QS.Area.ApplyGoalChecks then
+        QS.Area.ApplyGoalChecks({ prevStep })
+    end
     if not QS.char.historyAt and prevStep then
         QS.Resume.Remember(QS.char, prevStep)
     end
@@ -211,6 +224,9 @@ function QS:Rebuild()
             snap.review = true
             if QS.Area and QS.Area.RefreshStep then
                 QS.Area.RefreshStep(snap, log)
+            end
+            if QS.Area and QS.Area.ApplyGoalChecks then
+                QS.Area.ApplyGoalChecks({ snap })
             end
             local found = nil
             for i = 1, #built.steps do

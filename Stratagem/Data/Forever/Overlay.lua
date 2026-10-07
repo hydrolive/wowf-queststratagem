@@ -1,4 +1,9 @@
 -- Stratagem changelog
+-- 0.1.24 (2026-10-06)
+-- An objective keeps its count, such as 0/1 or 1/1, and a checkbox
+-- beside it. Finished objectives stay green and also read (Completed).
+-- Checking the box completes that objective, so Sell junk can be
+-- skipped. The step advances when every objective on it is complete.
 -- 0.1.23 (2026-10-06)
 -- A quest accepted after a camp is finished is its own step. The
 -- finished camp stays checked and keeps its completed objectives.

@@ -360,6 +360,12 @@ A quest accepted after a camp is finished is its own step. The Charred Vale keep
 
 Lua files for this pass were parsed as Lua 5.1. The separate visit and the follow-up accept were executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.24
+
+Each objective keeps its count. An open one reads 0/1, or 3/10, and a finished one reads 1/1 (Completed) or 10/10 (Completed) in green. A checkbox sits beside that count and is checked when the objective is complete. Checking it marks that objective complete and is remembered on this character for that step. Sell junk can be checked while poor items are still in the bags. A camp and its turn-in stay up while any objective is open. When every objective is complete, the step advances. A check on one step does not check the same words on another step. Reviewing an earlier step does not change the live route.
+
+Lua files for this pass were parsed as Lua 5.1. The checkbox, the count, and the step advance were executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -418,3 +424,4 @@ Lua files for this pass were parsed as Lua 5.1. The separate visit and the follo
 - 2026-10-06: One camp's turn-ins are one step, with Sell junk as an objective. A finished camp stays checked in the path. The status line names that step and its path number. The Charred Vale hand-in names Sun Rock Retreat and has no new pin.
 - 2026-10-06: Back from a grouped turn-in opens the camp. A single quest saved for that camp stays an objective. Sell junk is complete when no poor items remain.
 - 2026-10-06: A quest accepted after a camp is finished is its own step. That camp stays checked with the objectives it finished. The follow-up of the quest just turned in is accepted when its name continues that quest.
+- 2026-10-06: An objective keeps its count and also reads (Completed) in green when it is done. A checkbox beside the count completes it. Sell junk can be skipped that way. The step advances when every objective on it is complete.

@@ -67,6 +67,21 @@ function Resume.FlightKnown(char, label)
     return false
 end
 
+local function ObjectiveSkipped(step, obj)
+    if not obj or not QS.Area or not QS.Area.GoalKey then
+        return false
+    end
+    local checks = QS.char and QS.char.goalChecks
+    if type(checks) ~= "table" then
+        return false
+    end
+    local key = QS.Area.GoalKey(step, {
+        name = obj.text,
+        questID = step.questID,
+    })
+    return key and checks[key] and true or false
+end
+
 local function ObjectiveDone(log, step)
     local questID = step.questID
     if QuestDone(log, questID) then
@@ -81,13 +96,18 @@ local function ObjectiveDone(log, step)
     end
     local objs = info.objectives
     if step.objective and objs[step.objective] then
-        return objs[step.objective].finished and true or false
+        local obj = objs[step.objective]
+        if obj.finished or ObjectiveSkipped(step, obj) then
+            return true
+        end
+        return false
     end
     if #objs == 0 then
         return false
     end
     for i = 1, #objs do
-        if not objs[i].finished then
+        local obj = objs[i]
+        if not obj.finished and not ObjectiveSkipped(step, obj) then
             return false
         end
     end
@@ -144,15 +164,27 @@ function Resume.Done(step, log)
         return true
     end
     local kind = step.kind
+    local pocket = kind == "area" and IsPocket(step)
+    local campHand = kind == "turnin" and step.handIn and true or false
+    -- A checked objective counts. Steps that are not a camp or a camp
+    -- hand-in still finish the old way when the checkbox is not the reason.
+    if not pocket and not campHand then
+        if QS.Area and QS.Area.GoalsComplete and QS.Area.GoalsComplete(step) then
+            return true
+        end
+    end
     if kind == "area" then
         local ids = step.questIDs
         if not ids or #ids == 0 then
             return false
         end
-        -- A camp stays up while any objective is open. When every quest
-        -- on it is ready to hand in, one turn-in step is next. An older
-        -- snapshot may not have copied the pocket field.
-        if IsPocket(step) then
+        -- A camp stays up while any objective is open. Checking the box
+        -- completes that objective. When every one is done, the turn-in
+        -- is next. An older snapshot may not have copied the pocket field.
+        if pocket then
+            if step.goals and #step.goals > 0 and QS.Area and QS.Area.GoalsComplete then
+                return QS.Area.GoalsComplete(step)
+            end
             for i = 1, #ids do
                 local info = log.inLog[ids[i]]
                 if info and not (QS.Area and QS.Area.Ready and QS.Area.Ready(info)) then
@@ -250,6 +282,9 @@ function Resume.Done(step, log)
     end
     if kind == "objective" then
         return ObjectiveDone(log, step)
+    end
+    if campHand and step.goals and #step.goals > 0 and QS.Area and QS.Area.GoalsComplete then
+        return QS.Area.GoalsComplete(step)
     end
     if kind == "turnin" or kind == "hearth" or kind == "train" then
         if step.questIDs then

@@ -315,24 +315,89 @@ function UI:LayoutSegments(pos, count)
 end
 
 local function CountText(goal)
-    if goal.count == "(Completed)" or goal.count == "complete" then
-        return "(Completed)"
-    end
-    if goal.need and goal.need > 0 and (goal.have or 0) >= goal.need then
-        return "(Completed)"
-    end
-    if goal.count and goal.count ~= "" then
-        return goal.count
-    end
-    if goal.need and goal.need > 0 then
-        return (goal.have or 0) .. "/" .. goal.need
+    if QS.Area and QS.Area.CountText then
+        return QS.Area.CountText(goal)
     end
     return ""
 end
 
-local function GoalRow(goal)
+local function GoalTracked(goal)
+    local need = goal.need or 0
+    if need > 0 then
+        return true
+    end
+    if goal.count == "(Completed)" or goal.count == "complete" then
+        return true
+    end
+    return false
+end
+
+local function GoalRow(goal, step)
     local count = CountText(goal)
-    return { name = goal.name, count = count, done = count == "(Completed)" }
+    local done = goal.manual or goal.natural or string.find(count, "(Completed)", 1, true) ~= nil
+    local natural = goal.natural and true or false
+    if done and not goal.manual then
+        natural = true
+    end
+    local key = nil
+    if step and QS.Area and QS.Area.GoalKey then
+        key = QS.Area.GoalKey(step, goal)
+    end
+    return {
+        name = goal.name,
+        count = count,
+        done = done,
+        natural = natural,
+        track = GoalTracked(goal),
+        stepId = step and step.id or nil,
+        goalKey = key,
+        review = step and step.review and true or false,
+    }
+end
+
+local paintingChecks = false
+
+local function OnGoalCheck(self)
+    if paintingChecks then
+        return
+    end
+    if not self.track or not self.goalKey then
+        self:SetChecked(false)
+        return
+    end
+    if self.review or self.natural then
+        paintingChecks = true
+        self:SetChecked(self.done and true or false)
+        paintingChecks = false
+        return
+    end
+    if not QS.char then
+        self:SetChecked(self.done and true or false)
+        return
+    end
+    if type(QS.char.goalChecks) ~= "table" then
+        QS.char.goalChecks = {}
+    end
+    if self:GetChecked() then
+        QS.char.goalChecks[self.goalKey] = true
+    else
+        QS.char.goalChecks[self.goalKey] = nil
+    end
+    if QS.Rebuild then
+        QS:Rebuild()
+    end
+end
+
+local function HideGoalCheck(row)
+    if not row.check then
+        return
+    end
+    row.check.track = false
+    row.check.goalKey = nil
+    paintingChecks = true
+    row.check:SetChecked(false)
+    paintingChecks = false
+    row.check:Hide()
 end
 
 local function GoalText(step, log)
@@ -356,20 +421,38 @@ local function GoalText(step, log)
         local info = step.questID and log and log.inLog[step.questID]
         if step.goals then
             for i = 1, #step.goals do
-                rows[#rows + 1] = GoalRow(step.goals[i])
+                rows[#rows + 1] = GoalRow(step.goals[i], step)
             end
         elseif info and info.objectives and #info.objectives > 0 then
             for i = 1, #info.objectives do
                 local o = info.objectives[i]
-                local count = ""
-                local done = false
-                if o.finished or (o.need and o.need > 0 and (o.have or 0) >= o.need) then
-                    count = "(Completed)"
-                    done = true
-                elseif o.need and o.need > 0 then
-                    count = (o.have or 0) .. "/" .. o.need
+                local need = o.need or 0
+                local have = o.have or 0
+                local goal = {
+                    name = o.text or ("Objective " .. i),
+                    have = have,
+                    need = need,
+                    questID = step.questID,
+                }
+                if o.finished or (need > 0 and have >= need) then
+                    goal.count = "(Completed)"
+                    goal.natural = true
+                    if need > 0 and have < need then
+                        goal.have = need
+                    end
+                    if need <= 0 then
+                        goal.need = 1
+                        goal.have = 1
+                    end
+                elseif QS.Area and QS.Area.GoalChecked and QS.Area.GoalChecked(step, goal) then
+                    goal.manual = true
+                    if need <= 0 then
+                        goal.need = 1
+                    end
+                    goal.have = goal.need
+                    goal.count = "(Completed)"
                 end
-                rows[#rows + 1] = { name = o.text or ("Objective " .. i), count = count, done = done }
+                rows[#rows + 1] = GoalRow(goal, step)
             end
         else
             rows[#rows + 1] = { name = step.text or "Objective", count = "" }
@@ -378,7 +461,7 @@ local function GoalText(step, log)
         header = step.goalHeader or step.questName or step.title or ""
         if step.goals and #step.goals > 0 then
             for i = 1, #step.goals do
-                rows[#rows + 1] = GoalRow(step.goals[i])
+                rows[#rows + 1] = GoalRow(step.goals[i], step)
             end
             return header, rows
         end
@@ -453,7 +536,7 @@ function UI:PaintGoals(step, log)
         if step.extraGoals then
             for i = 1, #step.extraGoals do
                 local g = step.extraGoals[i]
-                rows[#rows + 1] = GoalRow(g)
+                rows[#rows + 1] = GoalRow(g, step)
             end
         end
     end
@@ -498,6 +581,7 @@ function UI:PaintGoals(step, log)
             row.name:Hide()
             row.count:Hide()
             row.icon:Hide()
+            HideGoalCheck(row)
         end
         self:FitGoals(0)
         return
@@ -529,21 +613,42 @@ function UI:PaintGoals(step, log)
             end
             local tex = RowTexture(src)
             local y = -250 - (i - 1) * 16
+            local nameX = 28
+            local nameW = 320
             row.name:ClearAllPoints()
             if tex or src.itemID or (src.link and src.link ~= "") then
                 row.icon.tex:SetTexture(tex or "Interface\\Icons\\INV_Misc_QuestionMark")
                 row.icon.link = src.link
                 row.icon.itemID = src.itemID
                 row.icon:Show()
-                row.name:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 36, y)
-                row.name:SetWidth(300)
+                nameX = 36
+                nameW = 300
             else
                 row.icon:Hide()
                 row.icon.link = nil
                 row.icon.itemID = nil
-                row.name:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 28, y)
-                row.name:SetWidth(320)
             end
+            row.count:ClearAllPoints()
+            if src.track and row.check and src.goalKey then
+                row.check:ClearAllPoints()
+                row.check:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -4, y + 1)
+                row.check.track = true
+                row.check.goalKey = src.goalKey
+                row.check.done = src.done and true or false
+                row.check.natural = src.natural and true or false
+                row.check.review = src.review and true or false
+                paintingChecks = true
+                row.check:SetChecked(src.done and true or false)
+                paintingChecks = false
+                row.check:Show()
+                row.count:SetPoint("RIGHT", row.check, "LEFT", -2, 0)
+                nameW = nameW - 96
+            else
+                HideGoalCheck(row)
+                row.count:SetPoint("TOPRIGHT", self.frame, "TOPRIGHT", -16, y)
+            end
+            row.name:SetPoint("TOPLEFT", self.frame, "TOPLEFT", nameX, y)
+            row.name:SetWidth(nameW)
             row.name:Show()
             row.count:Show()
         elseif overflow then
@@ -556,6 +661,7 @@ function UI:PaintGoals(step, log)
             row.icon:Hide()
             row.icon.link = nil
             row.icon.itemID = nil
+            HideGoalCheck(row)
             row.name:Show()
             row.count:Hide()
         else
@@ -564,6 +670,7 @@ function UI:PaintGoals(step, log)
             row.icon:Hide()
             row.icon.link = nil
             row.icon.itemID = nil
+            HideGoalCheck(row)
         end
     end
     self:FitGoals(shown)
@@ -1228,7 +1335,30 @@ function UI:Init()
         count:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -16, y)
         count:SetJustifyH("RIGHT")
         count:SetTextColor(RGB(QS.COLOR.muted))
-        self.goalRows[i] = { name = name, count = count, icon = icon }
+        local check = CreateFrame("CheckButton", nil, frame)
+        check:SetSize(16, 16)
+        check:SetNormalTexture("Interface\\Buttons\\UI-CheckBox-Up")
+        check:SetPushedTexture("Interface\\Buttons\\UI-CheckBox-Down")
+        check:SetHighlightTexture("Interface\\Buttons\\UI-CheckBox-Highlight", "ADD")
+        check:SetCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check")
+        check:SetDisabledCheckedTexture("Interface\\Buttons\\UI-CheckBox-Check-Disabled")
+        check:RegisterForClicks("LeftButtonUp")
+        check:SetScript("OnClick", OnGoalCheck)
+        check:SetScript("OnEnter", function(self)
+            if not GameTooltip or not self.track then
+                return
+            end
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText("Mark complete", 1, 0.82, 0)
+            GameTooltip:Show()
+        end)
+        check:SetScript("OnLeave", function()
+            if GameTooltip then
+                GameTooltip:Hide()
+            end
+        end)
+        check:Hide()
+        self.goalRows[i] = { name = name, count = count, icon = icon, check = check }
     end
 
     self.footer = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
