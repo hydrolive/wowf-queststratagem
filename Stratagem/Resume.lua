@@ -525,7 +525,7 @@ local function CopyGoals(step)
     local goals = {}
     for i = 1, #step.goals do
         local goal = step.goals[i]
-        goals[i] = { name = goal.name, have = goal.have, need = goal.need }
+        goals[i] = { name = goal.name, have = goal.have, need = goal.need, count = goal.count }
     end
     return goals
 end
@@ -1254,11 +1254,15 @@ function Resume.PathRows(route)
         if type(title) ~= "string" or title == "" then
             title = step.title or Resume.Caption(step)
         end
+        local shown = title
+        if step.handIn and type(step.title) == "string" and step.title ~= "" then
+            shown = step.title
+        end
         meta = meta or {}
         add({
             key = keyFor(title, step.questID),
             id = step.id,
-            title = title,
+            title = shown,
             zone = step.placeName or step.zone,
             state = state,
             band = meta.band or 0,

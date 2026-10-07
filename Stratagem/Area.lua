@@ -628,30 +628,49 @@ local function WithPlace(name, placeName)
     return (name or placeName) .. " · " .. placeName
 end
 
+local function GoalCount(obj, complete)
+    local have = obj.have or 0
+    local need = obj.need or 0
+    local done = obj.finished or complete
+    if done and need > 0 and have < need then
+        have = need
+    end
+    local goal = {
+        have = have,
+        need = need,
+    }
+    if done and need <= 0 then
+        goal.have = 1
+        goal.need = 1
+        goal.count = "complete"
+    end
+    return goal
+end
+
 local function GoalsNamed(rows, placeName)
     local goals = {}
     for i = 1, #rows do
         local row = rows[i]
-        if row.complete then
-            goals[#goals + 1] = {
-                name = WithPlace("Turn in " .. row.title, placeName),
-                have = 0,
-                need = 1,
-            }
-        else
-            local added = false
-            for j = 1, #row.objectives do
-                local obj = row.objectives[j]
-                if not obj.finished then
-                    goals[#goals + 1] = {
-                        name = WithPlace(ObjectiveLabel(obj.text) or row.title, placeName),
-                        have = obj.have or 0,
-                        need = obj.need or 0,
-                    }
-                    added = true
-                end
+        local added = false
+        for j = 1, #row.objectives do
+            local obj = row.objectives[j]
+            -- A finished quest keeps its objective. The hand-in is the next step.
+            if row.complete or not obj.finished then
+                local goal = GoalCount(obj, row.complete)
+                goal.name = WithPlace(ObjectiveLabel(obj.text) or row.title, placeName)
+                goals[#goals + 1] = goal
+                added = true
             end
-            if not added then
+        end
+        if not added then
+            if row.complete then
+                goals[#goals + 1] = {
+                    name = WithPlace(row.title, placeName),
+                    have = 1,
+                    need = 1,
+                    count = "complete",
+                }
+            else
                 goals[#goals + 1] = { name = WithPlace(row.title, placeName), have = 0, need = 1 }
             end
         end
@@ -741,23 +760,58 @@ local function ActivePockets(cluster, char)
     end
     local skips = (char and char.skipPockets) or {}
     local slug = Slug(cluster.zone)
-    local active = {}
+    local listed = {}
     for i = 1, #order do
         local pocket = order[i]
         if #pocket.rows > 0 then
             pocket.id = slug .. "-" .. pocket.key
-            if not skips[pocket.id] then
-                active[#active + 1] = pocket
-            end
+            pocket.skipped = skips[pocket.id] and true or false
+            listed[#listed + 1] = pocket
         end
     end
-    table.sort(active, function(a, b)
+    table.sort(listed, function(a, b)
         if a.order == b.order then
             return a.name < b.name
         end
         return a.order < b.order
     end)
-    return active
+    return listed
+end
+
+local function HandInSteps(cluster, pocket)
+    local ready = {}
+    for i = 1, #pocket.rows do
+        if pocket.rows[i].complete then
+            ready[#ready + 1] = pocket.rows[i]
+        end
+    end
+    table.sort(ready, function(a, b)
+        if a.title == b.title then
+            return a.id < b.id
+        end
+        return (a.title or "") < (b.title or "")
+    end)
+    local steps = {}
+    for i = 1, #ready do
+        local row = ready[i]
+        steps[#steps + 1] = {
+            id = "dyn-hand-" .. pocket.id .. "-" .. tostring(row.id),
+            handIn = true,
+            cluster = "area-" .. Slug(cluster.zone),
+            kind = "turnin",
+            title = "Turn in " .. row.title,
+            questName = row.title,
+            questID = row.id,
+            zone = cluster.zone,
+            text = row.title .. " is finished. Hand it in after " .. pocket.name .. ".",
+            goalHeader = "Turn in",
+            goals = { { name = "Turn in " .. row.title, have = 0, need = 1 } },
+            minutes = 5,
+            confidence = "log",
+            source = pocket.source or "quest-log",
+        }
+    end
+    return steps
 end
 
 local function PocketStep(cluster, pocket)
@@ -967,16 +1021,42 @@ function Area.Apply(built, char, log)
     local place = chosen.place
     -- A log zone is one pocket at a time. A named NPC place stays one step.
     if not place then
-        local active = ActivePockets(chosen, char)
-        if #active == 0 then
+        local pockets = ActivePockets(chosen, char)
+        local lead
+        local any = false
+        for i = 1, #pockets do
+            if not pockets[i].skipped then
+                lead = pockets[i]
+                break
+            end
+        end
+        for i = 1, #pockets do
+            local pocket = pockets[i]
+            if not pocket.skipped then
+                any = true
+            end
+            for r = 1, #pocket.rows do
+                if pocket.rows[r].complete then
+                    any = true
+                end
+            end
+        end
+        if not any then
             return
         end
         local here = TripArrived(char, chosen.zone)
-        if not here then
-            block[#block + 1] = TravelStep(chosen, tail, active[1])
+        if lead and not here then
+            block[#block + 1] = TravelStep(chosen, tail, lead)
         end
-        for i = 1, #active do
-            block[#block + 1] = PocketStep(chosen, active[i])
+        for i = 1, #pockets do
+            local pocket = pockets[i]
+            if not pocket.skipped then
+                block[#block + 1] = PocketStep(chosen, pocket)
+            end
+            local hands = HandInSteps(chosen, pocket)
+            for h = 1, #hands do
+                block[#block + 1] = hands[h]
+            end
         end
     else
         -- A named plateau stays on the area step, so a starter zone does not grey the walk.

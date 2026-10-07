@@ -318,6 +318,12 @@ Elemental War (Incendrites) and New Life (Gaea seed planted) belong in The Charr
 
 Lua files for this pass were parsed as Lua 5.1. The vale camps, the kill counts, and a stale objective read were executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.17
+
+A finished objective on a camp stays on that camp. Gaea seed planted reads 10/10, or complete when the log has no numbers. Turn in New Life is the next step. It is not a line in The Charred Vale list. The same split applies to any other quest that becomes ready to hand in while its camp is still open.
+
+Lua files for this pass were parsed as Lua 5.1. The finished objective and the hand-in step were executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -369,3 +375,4 @@ Lua files for this pass were parsed as Lua 5.1. The vale camps, the kill counts,
 - 2026-10-06: Path is a percent of the road, about half at the end of level 27, one row per quest. Next on a flight assumes you have landed, and the arrow points at one overlapping camp.
 - 2026-10-06: The path puts recent turn-ins against the current step and leaves starter quests at the top. A class trainer follows the current camp when the next even level is close. The camp keeps the arrow until it is finished. Quests that were on the log and have left it sit between those two.
 - 2026-10-06: The Charred Vale keeps the quests you are doing there, including Incendrites and planting Gaea seeds. Kill counts follow the quest log. Gathering Gaea seeds stays at Mirkfallon Lake. A low-level quest still does not start a trip from another zone.
+- 2026-10-06: A finished camp objective stays at its count. The hand-in is the next step.

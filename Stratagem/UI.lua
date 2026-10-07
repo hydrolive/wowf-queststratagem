@@ -314,6 +314,16 @@ function UI:LayoutSegments(pos, count)
     end
 end
 
+local function CountText(goal)
+    if goal.count and goal.count ~= "" then
+        return goal.count
+    end
+    if goal.need and goal.need > 0 then
+        return (goal.have or 0) .. "/" .. goal.need
+    end
+    return ""
+end
+
 local function GoalText(step, log)
     local rows = {}
     local header = step.questName or step.title or ""
@@ -336,11 +346,7 @@ local function GoalText(step, log)
         if step.goals then
             for i = 1, #step.goals do
                 local g = step.goals[i]
-                local count = ""
-                if g.need and g.need > 0 then
-                    count = (g.have or 0) .. "/" .. g.need
-                end
-                rows[#rows + 1] = { name = g.name, count = count }
+                rows[#rows + 1] = { name = g.name, count = CountText(g) }
             end
         elseif info and info.objectives and #info.objectives > 0 then
             for i = 1, #info.objectives do
@@ -360,12 +366,7 @@ local function GoalText(step, log)
         header = step.goalHeader or step.questName or step.title or ""
         if step.goals and #step.goals > 0 then
             for i = 1, #step.goals do
-                local g = step.goals[i]
-                local count = ""
-                if g.need and g.need > 0 then
-                    count = (g.have or 0) .. "/" .. g.need
-                end
-                rows[#rows + 1] = { name = g.name, count = count }
+                rows[#rows + 1] = { name = step.goals[i].name, count = CountText(step.goals[i]) }
             end
             return header, rows
         end
@@ -440,11 +441,7 @@ function UI:PaintGoals(step, log)
         if step.extraGoals then
             for i = 1, #step.extraGoals do
                 local g = step.extraGoals[i]
-                local count = ""
-                if g.need and g.need > 0 then
-                    count = (g.have or 0) .. "/" .. g.need
-                end
-                rows[#rows + 1] = { name = g.name, count = count }
+                rows[#rows + 1] = { name = g.name, count = CountText(g) }
             end
         end
     end

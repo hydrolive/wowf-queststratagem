@@ -1,4 +1,8 @@
 -- Stratagem changelog
+-- 0.1.17 (2026-10-06)
+-- A finished camp objective stays on the camp at its count, such as
+-- Gaea seed planted 10/10. The hand-in is the next step. It is not
+-- written into the camp list as Turn in.
 -- 0.1.16 (2026-10-06)
 -- The Charred Vale counts follow the quest log when a harpy dies.
 -- Reviewing the camp you are on returns to the live step. An earlier

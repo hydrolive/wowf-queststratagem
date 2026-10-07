@@ -1341,6 +1341,11 @@ function Live.SpliceSpellTrain(built, identity, char, log)
             break
         end
     end
+    if spot then
+        while steps[spot + 1] and steps[spot + 1].handIn do
+            spot = spot + 1
+        end
+    end
     if not spot then
         local skips = char.skips or {}
         for i = 1, #steps do
