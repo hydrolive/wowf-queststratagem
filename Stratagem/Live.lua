@@ -1099,9 +1099,9 @@ function Live.Apply(built, identity, char, log)
         block[#block + 1] = talent
     end
 
+    -- Sell junk is an objective on the camp turn-in. This step is repair.
     local low = QS.Api.DurabilityRatio() < 0.25
-    local full = bags.free <= SELL_AT
-    if Show(char, "dyn-vendor", full or low) then
+    if Show(char, "dyn-vendor", low) then
         local vendor = VendorStep(bags, place, identity.faction, low)
         if vendor then
             block[#block + 1] = vendor

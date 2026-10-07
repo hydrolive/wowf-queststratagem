@@ -342,6 +342,12 @@ A finished camp is not held on screen by an older manual step. The window moves 
 
 Lua files for this pass were parsed as Lua 5.1. The released camp, the leg time, and the reward toggle were executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.21
+
+Quests turned in from the same camp are one step. The Charred Vale step is Turn in Charred Vale quests. Each quest is an objective, and Sell junk is the last objective. Sell junk is not its own path step. A repair step remains when gear is damaged. The Charred Vale turn-in names Sun Rock Retreat and adds no pin. A finished camp stays a checked path row just above the current step, including while you review it. The status line names the step on screen and its path number, such as Go to The Charred Vale - Step 29 or Turn in at Sun Rock Retreat - Step 30. A quest that has left the log stays on that turn-in as (Completed).
+
+Lua files for this pass were parsed as Lua 5.1. The combined turn-in, the camp row, and the status line were executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -397,3 +403,4 @@ Lua files for this pass were parsed as Lua 5.1. The released camp, the leg time,
 - 2026-10-06: A finished objective stays on the step and reads (Completed) in green. Back still lists it.
 - 2026-10-06: A camp moves to its turn-in when every objective is finished. It stays up while any objective is still open.
 - 2026-10-06: A finished camp is not pinned by an older manual step. Area and Already done name the zone and the path step. Last leg is the recorded step time. Auto pick reward can be turned off.
+- 2026-10-06: One camp's turn-ins are one step, with Sell junk as an objective. A finished camp stays checked in the path. The status line names that step and its path number. The Charred Vale hand-in names Sun Rock Retreat and has no new pin.

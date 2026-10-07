@@ -1,4 +1,10 @@
 -- Stratagem changelog
+-- 0.1.21 (2026-10-06)
+-- One camp's turn-ins are one step. Each quest is an objective, and
+-- Sell junk is the last objective rather than its own path step.
+-- A finished camp stays checked in the path. The status line names
+-- the step and its path number. The Charred Vale hand-in names
+-- Sun Rock Retreat and adds no pin.
 -- 0.1.20 (2026-10-06)
 -- A finished camp is not pinned on screen. Area and Already done name
 -- the zone and the path step. Last leg is the recorded step time.

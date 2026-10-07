@@ -563,6 +563,7 @@ local POCKETS = {
             key = "charred-vale",
             name = "The Charred Vale",
             where = "south of Sun Rock Retreat",
+            hub = "Sun Rock Retreat",
             mapID = 1442,
             x = 0.32,
             y = 0.68,
@@ -746,7 +747,24 @@ local function PreviousGoals(id)
 end
 
 function Area.RefreshStep(step, log)
-    if not step or step.kind ~= "area" or not step.placeName or not log then
+    if not step or not log then
+        return
+    end
+    -- A quest that left the log stays on the turn-in as (Completed).
+    -- Sell junk has no quest id, so it stays 0/1.
+    if step.handIn and step.goals then
+        for i = 1, #step.goals do
+            local goal = step.goals[i]
+            local qid = goal.questID
+            if qid and not log.inLog[qid] then
+                goal.have = 1
+                goal.need = goal.need or 1
+                goal.count = "(Completed)"
+            end
+        end
+        return
+    end
+    if step.kind ~= "area" or not step.placeName then
         return
     end
     local defs = POCKETS[step.zone]
@@ -792,6 +810,7 @@ local function ActivePockets(cluster, char)
                 y = def.y,
                 order = def.order or 50,
                 source = def.source,
+                hub = def.hub,
                 rows = {},
             }
             buckets[def.key] = found
@@ -845,12 +864,26 @@ local function ActivePockets(cluster, char)
     return listed
 end
 
-local function HandInSteps(cluster, pocket)
+local function ShortPlace(name)
+    if type(name) == "string" and string.sub(name, 1, 4) == "The " then
+        return string.sub(name, 5)
+    end
+    if type(name) ~= "string" or name == "" then
+        return "these"
+    end
+    return name
+end
+
+-- One step for every ready quest in the camp. No pin: the hub is a name only.
+local function HandInStep(cluster, pocket)
     local ready = {}
     for i = 1, #pocket.rows do
         if pocket.rows[i].complete then
             ready[#ready + 1] = pocket.rows[i]
         end
+    end
+    if #ready == 0 then
+        return nil
     end
     table.sort(ready, function(a, b)
         if a.title == b.title then
@@ -858,27 +891,77 @@ local function HandInSteps(cluster, pocket)
         end
         return (a.title or "") < (b.title or "")
     end)
-    local steps = {}
+    local openId = {}
+    local openName = {}
     for i = 1, #ready do
         local row = ready[i]
-        steps[#steps + 1] = {
-            id = "dyn-hand-" .. pocket.id .. "-" .. tostring(row.id),
-            handIn = true,
-            cluster = "area-" .. Slug(cluster.zone),
-            kind = "turnin",
-            title = "Turn in " .. row.title,
-            questName = row.title,
+        openId[row.id] = true
+        openName["turn in " .. string.lower(row.title or "")] = true
+    end
+    local id = "dyn-hand-" .. pocket.id
+    local goals = {}
+    local kept = {}
+    local previous = PreviousGoals(id)
+    if previous then
+        for i = 1, #previous do
+            local old = previous[i]
+            local name = old.name or ""
+            local low = string.lower(name)
+            local qid = old.questID
+            local still = (qid and openId[qid]) or openName[low]
+            local turnin = qid or string.sub(low, 1, 8) == "turn in "
+            if low ~= "" and low ~= "sell junk" and turnin and not still then
+                local key = qid or low
+                if not kept[key] then
+                    goals[#goals + 1] = {
+                        name = name,
+                        questID = qid,
+                        have = 1,
+                        need = 1,
+                        count = "(Completed)",
+                    }
+                    kept[key] = true
+                end
+            end
+        end
+    end
+    local ids = {}
+    for i = 1, #ready do
+        local row = ready[i]
+        ids[#ids + 1] = row.id
+        goals[#goals + 1] = {
+            name = "Turn in " .. row.title,
             questID = row.id,
-            zone = cluster.zone,
-            text = row.title .. " is finished. Hand it in after " .. pocket.name .. ".",
-            goalHeader = "Turn in",
-            goals = { { name = "Turn in " .. row.title, have = 0, need = 1 } },
-            minutes = 5,
-            confidence = "log",
-            source = pocket.source or "quest-log",
+            have = 0,
+            need = 1,
         }
     end
-    return steps
+    goals[#goals + 1] = { name = "Sell junk", have = 0, need = 1 }
+    local hub = pocket.hub
+    local text = "These " .. pocket.name .. " quests are finished. Hand these in after " .. pocket.name .. "."
+    if type(hub) == "string" and hub ~= "" then
+        text = "These " .. pocket.name .. " quests are finished. Hand these in at " .. hub .. "."
+    end
+    local step = {
+        id = id,
+        handIn = true,
+        cluster = "area-" .. Slug(cluster.zone),
+        kind = "turnin",
+        title = "Turn in " .. ShortPlace(pocket.name) .. " quests",
+        zone = cluster.zone,
+        placeName = pocket.name,
+        questIDs = ids,
+        text = text,
+        goalHeader = "Turn in",
+        goals = goals,
+        minutes = 5,
+        confidence = "log",
+        source = pocket.source or "quest-log",
+    }
+    if type(hub) == "string" and hub ~= "" then
+        step.turnInAt = hub
+    end
+    return step
 end
 
 local function PocketStep(cluster, pocket)
@@ -1120,9 +1203,9 @@ function Area.Apply(built, char, log)
             if not pocket.skipped then
                 block[#block + 1] = PocketStep(chosen, pocket)
             end
-            local hands = HandInSteps(chosen, pocket)
-            for h = 1, #hands do
-                block[#block + 1] = hands[h]
+            local hand = HandInStep(chosen, pocket)
+            if hand then
+                block[#block + 1] = hand
             end
         end
     else

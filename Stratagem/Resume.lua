@@ -125,6 +125,14 @@ function Resume.ZoneMatch(step)
     return zone == step.completeOnZone or real == step.completeOnZone or zone == step.zone
 end
 
+local function IsPocket(step)
+    if step and step.pocket then
+        return true
+    end
+    local id = step and step.id
+    return type(id) == "string" and string.sub(id, 1, 16) == "dyn-area-pocket-"
+end
+
 function Resume.Done(step, log)
     if not step or not log then
         return false
@@ -142,8 +150,9 @@ function Resume.Done(step, log)
             return false
         end
         -- A camp stays up while any objective is open. When every quest
-        -- on it is ready to hand in, the turn-in steps are next.
-        if step.pocket then
+        -- on it is ready to hand in, one turn-in step is next. An older
+        -- snapshot may not have copied the pocket field.
+        if IsPocket(step) then
             for i = 1, #ids do
                 local info = log.inLog[ids[i]]
                 if info and not (QS.Area and QS.Area.Ready and QS.Area.Ready(info)) then
@@ -393,6 +402,7 @@ local SNAP_KEYS = {
     "id", "title", "text", "zone", "placeName", "mapID", "x", "y", "pin", "npc", "kind",
     "questID", "questName", "cluster", "goalHeader", "areaTurnin",
     "confidence", "where", "completeOnZone",
+    "pocket", "handIn", "turnInAt",
 }
 
 local CHECK = "|TInterface\\RaidFrame\\ReadyCheck-Ready:12|t "
@@ -537,7 +547,13 @@ local function CopyGoals(step)
     local goals = {}
     for i = 1, #step.goals do
         local goal = step.goals[i]
-        goals[i] = { name = goal.name, have = goal.have, need = goal.need, count = goal.count }
+        goals[i] = {
+            name = goal.name,
+            have = goal.have,
+            need = goal.need,
+            count = goal.count,
+            questID = goal.questID,
+        }
     end
     return goals
 end
@@ -592,6 +608,15 @@ function Resume.Remember(char, step)
         end
         if step.text then
             last.text = step.text
+        end
+        if step.pocket then
+            last.pocket = step.pocket
+        end
+        if step.handIn then
+            last.handIn = step.handIn
+        end
+        if step.turnInAt then
+            last.turnInAt = step.turnInAt
         end
         if char.pendingClear and char.pendingClear.id == step.id then
             last.clear = char.pendingClear.clear
@@ -1287,7 +1312,11 @@ function Resume.PathRows(route)
         for i = 1, #hist do
             local row = hist[i]
             if row and row.id and Resume.Done(row, log) then
-                consider(row, "done", { band = 1, when = 0, seq = 10000000 + i })
+                local seq = 10000000 + i
+                if IsPocket(row) then
+                    seq = 20000000 + i
+                end
+                consider(row, "done", { band = 1, when = 0, seq = seq })
             end
         end
     end
@@ -1335,8 +1364,13 @@ function Resume.PathRows(route)
             show = false
         end
         if show then
+            local liveId = route and route.liveId
             local state = "ahead"
-            if i == index then
+            if liveId and step.id == liveId then
+                state = "now"
+            elseif IsPocket(step) and Resume.Done(step, log) then
+                state = "done"
+            elseif i == index then
                 state = "now"
             elseif Resume.Done(step, log) then
                 state = "done"
@@ -1353,7 +1387,11 @@ function Resume.PathRows(route)
             if when > 0 or (state == "done" and not grey) then
                 band = 1
             end
-            consider(step, state, { band = band, when = when, seq = i })
+            local seq = i
+            if state == "done" and IsPocket(step) then
+                seq = 20000000 + i
+            end
+            consider(step, state, { band = band, when = when, seq = seq })
         end
     end
 
@@ -1469,11 +1507,24 @@ function Resume.PlaceLabel(label, step)
     if type(zone) == "string" and zone ~= "" then
         label = label .. " · " .. zone
     end
-    local n = QS.route and QS.route.pathStep
+    local route = QS.route
+    local n = route and (route.viewStep or route.pathStep)
     if type(n) == "number" and n > 0 then
         label = label .. " - Step " .. n
     end
     return label
+end
+
+local function StepStamp(text)
+    if type(text) ~= "string" or text == "" then
+        text = "Step"
+    end
+    local route = QS.route
+    local n = route and (route.viewStep or route.pathStep)
+    if type(n) == "number" and n > 0 then
+        return text .. " - Step " .. n
+    end
+    return text
 end
 
 function Resume.Status(step, log, measure)
@@ -1481,10 +1532,11 @@ function Resume.Status(step, log, measure)
         return "Ready"
     end
     if step.review then
-        if Resume.Done(step, log) then
-            return "Done"
+        local title = step.title
+        if type(title) ~= "string" or title == "" then
+            title = Resume.Caption(step)
         end
-        return "Review"
+        return StepStamp(title)
     end
     local char = QS.char
     if char and char.manualStepId == step.id and Resume.Done(step, log) then
@@ -1540,6 +1592,13 @@ function Resume.Status(step, log, measure)
         return "Dungeon"
     end
     if step.kind == "turnin" or step.kind == "hearth" or step.kind == "train" then
+        if step.handIn or (type(step.turnInAt) == "string" and step.turnInAt ~= "") then
+            local title = step.title or "Turn in"
+            if type(step.turnInAt) == "string" and step.turnInAt ~= "" then
+                title = "Turn in at " .. step.turnInAt
+            end
+            return StepStamp(title)
+        end
         local info = step.questID and log.inLog[step.questID]
         if (info and info.complete) or (measure and measure.mode == "ok" and measure.yards and measure.yards < 8) then
             return "Turn in"

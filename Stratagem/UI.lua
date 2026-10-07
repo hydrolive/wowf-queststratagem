@@ -609,8 +609,17 @@ function UI:Refresh()
         self.dist:SetText("—")
     end
     if route and QS.Resume and QS.Resume.PathRows then
-        local _, focus = QS.Resume.PathRows(route)
+        local rows, focus = QS.Resume.PathRows(route)
         route.pathStep = focus
+        route.viewStep = focus
+        if step and step.id then
+            for i = 1, #rows do
+                if rows[i].id == step.id then
+                    route.viewStep = i
+                    break
+                end
+            end
+        end
     end
     local statusLog = log or { inLog = {}, completed = {} }
     self.status:SetText(QS.Resume.Status(step, statusLog, measure))
