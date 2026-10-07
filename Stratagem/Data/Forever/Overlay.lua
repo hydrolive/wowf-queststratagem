@@ -1,4 +1,7 @@
 -- Stratagem changelog
+-- 0.1.25 (2026-10-06)
+-- The step you just finished stays on the path row above the
+-- current step. Back shows that row's number.
 -- 0.1.24 (2026-10-06)
 -- An objective keeps its count, such as 0/1 or 1/1, and a checkbox
 -- beside it. Finished objectives stay green and also read (Completed).

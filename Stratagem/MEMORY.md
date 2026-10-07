@@ -366,6 +366,12 @@ Each objective keeps its count. An open one reads 0/1, or 3/10, and a finished o
 
 Lua files for this pass were parsed as Lua 5.1. The checkbox, the count, and the step advance were executed outside the client. Nobody logged the character in during this pass.
 
+## Implemented in 0.1.25
+
+The path number is that step's row. Steps you already walked stay in that order, immediately above the current step. A quest turned in earlier, whose clock time is later, no longer sits between the camp you just left and the step you are on. Back from the current step opens the previous row.
+
+Lua files for this pass were parsed as Lua 5.1. The path order, one Back, and the objective checkbox were executed outside the client. Nobody logged the character in during this pass.
+
 ## Still todo
 
 - Interior boss coordinates, so the arrow can point at each boss. Do not invent them.
@@ -417,6 +423,7 @@ Lua files for this pass were parsed as Lua 5.1. The checkbox, the count, and the
 - 2026-10-06: Path is a percent of the road, about half at the end of level 27, one row per quest. Next on a flight assumes you have landed, and the arrow points at one overlapping camp.
 - 2026-10-06: The path puts recent turn-ins against the current step and leaves starter quests at the top. A class trainer follows the current camp when the next even level is close. The camp keeps the arrow until it is finished. Quests that were on the log and have left it sit between those two.
 - 2026-10-06: The Charred Vale keeps the quests you are doing there, including Incendrites and planting Gaea seeds. Kill counts follow the quest log. Gathering Gaea seeds stays at Mirkfallon Lake. A low-level quest still does not start a trip from another zone.
+- 2026-10-06: Walked steps stay in the order they were done, immediately above the current step. Back shows that previous path number.
 - 2026-10-06: A finished camp objective stays at its count. The hand-in is the next step.
 - 2026-10-06: A finished objective stays on the step and reads (Completed) in green. Back still lists it.
 - 2026-10-06: A camp moves to its turn-in when every objective is finished. It stays up while any objective is still open.

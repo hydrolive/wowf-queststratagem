@@ -1260,6 +1260,9 @@ function Resume.PathRows(route)
             if (row.seq or 0) > (prev.seq or 0) then
                 prev.seq = row.seq
             end
+            if (row.walk or 0) > (prev.walk or 0) then
+                prev.walk = row.walk
+            end
             if row.state == "now" then
                 prev.id = row.id or prev.id
                 prev.title = row.title or prev.title
@@ -1362,6 +1365,7 @@ function Resume.PathRows(route)
             band = meta.band or 0,
             when = meta.when or 0,
             seq = meta.seq or 0,
+            walk = meta.walk or 0,
         })
     end
 
@@ -1373,7 +1377,9 @@ function Resume.PathRows(route)
                 if IsPocket(row) then
                     seq = 20000000 + i
                 end
-                consider(row, "done", { band = 1, when = 0, seq = seq })
+                -- walk keeps the order the steps were actually done, so the
+                -- previous step sits on the row above the current one.
+                consider(row, "done", { band = 1, when = 0, seq = seq, walk = i })
             end
         end
     end
@@ -1483,6 +1489,13 @@ function Resume.PathRows(route)
         end
     end
     table.sort(doneRows, function(a, b)
+        local awalk, bwalk = (a.walk or 0) > 0, (b.walk or 0) > 0
+        if awalk ~= bwalk then
+            return not awalk
+        end
+        if awalk then
+            return (a.walk or 0) < (b.walk or 0)
+        end
         local ab, bb = a.band or 0, b.band or 0
         if ab ~= bb then
             return ab < bb
@@ -1497,11 +1510,19 @@ function Resume.PathRows(route)
         end
         return (a.title or "") < (b.title or "")
     end)
+    local walked = {}
     for i = 1, #doneRows do
-        ordered[#ordered + 1] = doneRows[i]
+        if (doneRows[i].walk or 0) > 0 then
+            walked[#walked + 1] = doneRows[i]
+        else
+            ordered[#ordered + 1] = doneRows[i]
+        end
     end
     for i = 1, #skips do
         ordered[#ordered + 1] = skips[i]
+    end
+    for i = 1, #walked do
+        ordered[#ordered + 1] = walked[i]
     end
     local focus = #ordered + 1
     if now then
